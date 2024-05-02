@@ -13,78 +13,84 @@ using System.Threading;
 
 namespace serialtoip
 {
-  public class ServerMode
-  {
-    private volatile bool _run = true;
-    private Connection conn;
-
-    public void StopRequest()
+    public class ServerMode
     {
-      if (this.conn != null)
-        this.conn.StopRequest();
-      this._run = false;
-    }
+        private volatile bool _run = true;
+        private Connection conn;
 
-    public int Run(
-      Dictionary<string, string> d,
-      SerialPort sp,
-      CrossThreadComm.TraceCb traceFunc,
-      CrossThreadComm.UpdateState updState)
-    {
-      return this.Run(d, sp, traceFunc, updState, (CrossThreadComm.UpdateRXTX) null);
-    }
-
-    public int Run(
-      Dictionary<string, string> d,
-      SerialPort sp,
-      CrossThreadComm.TraceCb traceFunc,
-      CrossThreadComm.UpdateState updState,
-      CrossThreadComm.UpdateRXTX updRxTx)
-    {
-      if (traceFunc != null)
-        traceFunc((object) "SOCKET SERVER MODE");
-      DateTime now = DateTime.Now;
-      this._run = true;
-      Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-      socket.Bind((EndPoint)new IPEndPoint(IPAddress.Any, int.Parse(d["socketport"].Trim())));
-      Console.WriteLine(socket.LocalEndPoint);                                                      // 0.0.0.0:8888 - смотрим в консоли на текущий адрес и порт
-      socket.Listen(1);
-      socket.ReceiveTimeout = 10;
-      while (this._run)
-      {
-        Socket soc = (Socket) null;
-        if (!sp.IsOpen && socket.Poll(1000, SelectMode.SelectRead))
-          soc = socket.Accept();
-        if (!sp.IsOpen && soc != null)
+        public void StopRequest()
         {
-          traceFunc((object) "Tcp client connected");
-          this.conn = new Connection();
-          try
-          {
-            this.conn.StartConnection(soc, d, sp, traceFunc, updState, updRxTx);
-          }
-          catch (Exception ex)
-          {
-            traceFunc((object) "IP-to-SERIAL connection initialization failed");
-            this.conn = (Connection) null;
-          }
+            if (this.conn != null)
+                this.conn.StopRequest();
+            this._run = false;
         }
-        else
+
+        public int Run(
+          Dictionary<string, string> d,
+          SerialPort sp,
+          CrossThreadComm.TraceCb traceFunc,
+          CrossThreadComm.UpdateState updState)
         {
-          if (DateTime.Now.Subtract(now).TotalSeconds > 10.0)
-          {
-            traceFunc((object) "Server active and idle");
-            now = DateTime.Now;
-          }
-          Thread.Sleep(1);
+            return this.Run(d, sp, traceFunc, updState, (CrossThreadComm.UpdateRXTX)null);
         }
-      }
-      traceFunc((object) "Server shutting down");
-      socket.Close();
-      this.conn = (Connection) null;
-      if (updState != null)
-        updState((object) this, CrossThreadComm.State.terminate);
-      return 0;
+
+        public int Run(
+            Dictionary<string, string> d,
+            SerialPort sp,
+            CrossThreadComm.TraceCb traceFunc,
+            CrossThreadComm.UpdateState updState,
+            CrossThreadComm.UpdateRXTX updRxTx)
+        {
+            if (traceFunc != null)
+                traceFunc((object)"SOCKET SERVER MODE");
+
+            DateTime now = DateTime.Now;
+            this._run = true;
+            Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            socket.Bind((EndPoint)new IPEndPoint(IPAddress.Any, int.Parse(d["socketport"].Trim())));
+            Console.WriteLine(socket.LocalEndPoint);                                                      // 0.0.0.0:8888 - смотрим в консоли на текущий адрес и порт
+            socket.Listen(1);
+            socket.ReceiveTimeout = 10;
+            
+            while (this._run)
+            {
+                Socket soc = (Socket)null;
+
+                if (!sp.IsOpen && socket.Poll(1000, SelectMode.SelectRead))
+                    soc = socket.Accept();
+
+                if (!sp.IsOpen && soc != null)
+                {
+                    traceFunc((object)"Tcp client connected");
+                    this.conn = new Connection();
+                    try
+                    {
+                        this.conn.StartConnection(soc, d, sp, traceFunc, updState, updRxTx);
+                    }
+                    catch (Exception ex)
+                    {
+                        traceFunc((object)"IP-to-SERIAL connection initialization failed");
+                        traceFunc((object)ex.Message);
+                        this.conn = (Connection)null;
+                    }
+                }
+                else
+                {
+                    if (DateTime.Now.Subtract(now).TotalSeconds > 10.0)
+                    {
+                        traceFunc((object)"Server active and idle");
+                        now = DateTime.Now;
+                    }
+                    Thread.Sleep(1);
+                }
+            }
+
+            traceFunc((object)"Server shutting down");
+            socket.Close();
+            this.conn = (Connection)null;
+            if (updState != null)
+                updState((object)this, CrossThreadComm.State.terminate);
+            return 0;
+        }
     }
-  }
 }

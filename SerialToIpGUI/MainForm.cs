@@ -15,421 +15,421 @@ using System.Windows.Forms;
 
 namespace SerialToIpGUI
 {
-  public class MainForm : Form
-  {
-    private static CrossThreadComm.TraceCb _conInfoTrace;
-    private static CrossThreadComm.UpdateState _updateState;
-    private static CrossThreadComm.UpdateRXTX _updRxTx;
-    private int _DiagSerportRx;
-    private int _DiagSerportTx;
-    private static object lck = new object();
-    private static SerialPort sp = (SerialPort) null;
-    protected object _traceListBoxLock = new object();
-    private Dictionary<string, string> dn = new Dictionary<string, string>();
-    private List<string> _items = new List<string>();
-    private ClientMode cm;
-    private ServerMode sm;
-    private bool _running;
-    private bool _shuttingdown;
-    protected Thread thServiceThread;
-    protected bool _connected;
-    protected bool _is_shown;
-    private bool drag;
-    private Point start_point = new Point(0, 0);
-    private bool draggable = true;
-    private IContainer components;
-    private Panel panel5;
-    private Button buttonMinimize;
-    private Label label7;
-    private Label label6;
-    private Label labelRxSerial;
-    private Label labelSerialTX;
-    private Panel panel4;
-    private Panel panel3;
-    private Panel panel2;
-    private Panel panel1;
-    private Label label5;
-    private Button button1;
-    private Label label4;
-    private Button buttonClearLog;
-    private Button buttonRefresh;
-    private ListBox listBoxInfoTrace;
-    private Button buttonStop;
-    private ComboBox listBoxBaudrate;
-    private Label label3;
-    private Button buttonStart;
-    private Label labelRemoteHost;
-    private TextBox textBoxRemoteHost;
-    private RadioButton radioButtonServer;
-    private RadioButton radioButtonClient;
-    private GroupBox groupBox1;
-    private TextBox textBoxSocketPort;
-    private Label label2;
-    private Label label1;
-    private ComboBox listBoxSerialPorts;
-
-    private void ServiceThread()
+    public class MainForm : Form
     {
-      this._running = true;
-      this.ConnInfoTrace((object) ("Service start " + this.dn["serialport"] + " " + int.Parse(this.dn["baudrate"].Trim()).ToString()));
-      try
-      {
-        MainForm.sp = new SerialPort(this.dn["serialport"], int.Parse(this.dn["baudrate"].Trim()), Parity.None, 8, StopBits.One);
-        if (this.dn["remotehost"] != null)
+        private static CrossThreadComm.TraceCb _conInfoTrace;
+        private static CrossThreadComm.UpdateState _updateState;
+        private static CrossThreadComm.UpdateRXTX _updRxTx;
+        private int _DiagSerportRx;
+        private int _DiagSerportTx;
+        private static object lck = new object();
+        private static SerialPort sp = (SerialPort)null;
+        protected object _traceListBoxLock = new object();
+        private Dictionary<string, string> dn = new Dictionary<string, string>();
+        private List<string> _items = new List<string>();
+        private ClientMode cm;
+        private ServerMode sm;
+        private bool _running;
+        private bool _shuttingdown;
+        protected Thread thServiceThread;
+        protected bool _connected;
+        protected bool _is_shown;
+        private bool drag;
+        private Point start_point = new Point(0, 0);
+        private bool draggable = true;
+        private IContainer components;
+        private Panel panel5;
+        private Button buttonMinimize;
+        private Label label7;
+        private Label label6;
+        private Label labelRxSerial;
+        private Label labelSerialTX;
+        private Panel panel4;
+        private Panel panel3;
+        private Panel panel2;
+        private Panel panel1;
+        private Label label5;
+        private Button btnCloseForm;
+        private Label label4;
+        private Button buttonClearLog;
+        private Button buttonRefresh;
+        private ListBox listBoxInfoTrace;
+        private Button buttonStop;
+        private ComboBox listBoxBaudrate;
+        private Label label3;
+        private Button buttonStart;
+        private Label labelRemoteHost;
+        private TextBox textBoxRemoteHost;
+        private RadioButton radioButtonServer;
+        private RadioButton radioButtonClient;
+        private GroupBox groupBox1;
+        private TextBox textBoxSocketPort;
+        private Label label2;
+        private Label label1;
+        private ComboBox listBoxSerialPorts;
+
+        private void ServiceThread()
         {
-          this.cm = new ClientMode();
-          this.cm.Run(this.dn, MainForm.sp, MainForm._conInfoTrace, MainForm._updateState, MainForm._updRxTx);
+            this._running = true;
+            this.ConnInfoTrace((object)("Service start " + this.dn["serialport"] + " " + int.Parse(this.dn["baudrate"].Trim()).ToString()));
+            try
+            {
+                MainForm.sp = new SerialPort(this.dn["serialport"], int.Parse(this.dn["baudrate"].Trim()), Parity.None, 8, StopBits.One);
+                if (this.dn["remotehost"] != null)
+                {
+                    this.cm = new ClientMode();
+                    this.cm.Run(this.dn, MainForm.sp, MainForm._conInfoTrace, MainForm._updateState, MainForm._updRxTx);
+                }
+                else
+                {
+                    this.sm = new ServerMode();
+                    this.sm.Run(this.dn, MainForm.sp, MainForm._conInfoTrace, MainForm._updateState, MainForm._updRxTx);
+                }
+            }
+            catch (Exception ex)
+            {
+                this._running = false;
+                this.ConnInfoTrace((object)"Mode start failed..");
+            }
+            this.ConnInfoTrace((object)"Service stopped");
+            this._running = false;
+            this.cm = (ClientMode)null;
+            this.sm = (ServerMode)null;
+            this.thServiceThread = (Thread)null;
         }
-        else
+
+        private void AddOrUpdate(string key, string value)
         {
-          this.sm = new ServerMode();
-          this.sm.Run(this.dn, MainForm.sp, MainForm._conInfoTrace, MainForm._updateState, MainForm._updRxTx);
+            if (this.dn.ContainsKey(key))
+                this.dn[key] = value;
+            else
+                this.dn.Add(key, value);
         }
-      }
-      catch (Exception ex)
-      {
-        this._running = false;
-        this.ConnInfoTrace((object) "Mode start failed..");
-      }
-      this.ConnInfoTrace((object) "Service stopped");
-      this._running = false;
-      this.cm = (ClientMode) null;
-      this.sm = (ServerMode) null;
-      this.thServiceThread = (Thread) null;
-    }
 
-    private void AddOrUpdate(string key, string value)
-    {
-      if (this.dn.ContainsKey(key))
-        this.dn[key] = value;
-      else
-        this.dn.Add(key, value);
-    }
-
-    private void ButtonStartClick(object sender, EventArgs e)
-    {
-      this.AddOrUpdate("serialport", (string) this.listBoxSerialPorts.SelectedItem ?? this.listBoxSerialPorts.Text);
-      this.AddOrUpdate("baudrate", (string) this.listBoxBaudrate.SelectedItem);
-      this.AddOrUpdate("socketport", this.textBoxSocketPort.Text);
-      this.listBoxBaudrate.Enabled = false;
-      this.listBoxSerialPorts.Enabled = false;
-      this.textBoxSocketPort.Enabled = false;
-      if (!this.radioButtonServer.Checked)
-        this.AddOrUpdate("remotehost", this.textBoxRemoteHost.Text);
-      else
-        this.AddOrUpdate("remotehost", (string) null);
-      this.buttonStop.Enabled = true;
-      this.buttonStart.Enabled = false;
-      this.buttonRefresh.Enabled = false;
-      this.thServiceThread = new Thread(new ThreadStart(this.ServiceThread));
-      this._running = true;
-      this.thServiceThread.Start();
-      Thread.Sleep(100);
-      if (!this._running)
-      {
-        this.groupBox1.Enabled = true;
-        this.radioButtonClient.Enabled = true;
-        this.radioButtonServer.Enabled = true;
-        this.buttonStop.Enabled = false;
-        this.buttonStart.Enabled = true;
-        this.buttonRefresh.Enabled = true;
-        this.panel5.BackColor = Color.Gray;
-      }
-      else
-      {
-        this.groupBox1.Enabled = false;
-        this.radioButtonClient.Enabled = false;
-        this.radioButtonServer.Enabled = false;
-        this.panel5.BackColor = Color.Orange;
-      }
-    }
-
-    private void HandleStop()
-    {
-      if (this.cm != null)
-      {
-        this.ConnInfoTrace((object) "Stop request set to Client Mode");
-        this.cm.StopRequest();
-      }
-      if (this.sm != null)
-      {
-        this.ConnInfoTrace((object) "Stop request set to Server Mode");
-        this.sm.StopRequest();
-      }
-      this.cm = (ClientMode) null;
-      this.sm = (ServerMode) null;
-      this.panel5.BackColor = Color.Gray;
-      this.buttonStop.Enabled = false;
-      this.buttonStart.Enabled = true;
-      this.buttonRefresh.Enabled = true;
-      this.listBoxBaudrate.Enabled = true;
-      this.listBoxSerialPorts.Enabled = true;
-      this.textBoxSocketPort.Enabled = true;
-      this.groupBox1.Enabled = true;
-      this.radioButtonClient.Enabled = true;
-      this.radioButtonServer.Enabled = true;
-    }
-
-    private void ButtonStopClick(object sender, EventArgs e) => this.HandleStop();
-
-    public void UpdateState(object obj, CrossThreadComm.State state)
-    {
-      if (this.InvokeRequired)
-      {
-        if (this._shuttingdown)
-          return;
-        this.Invoke((Delegate) new CrossThreadComm.UpdateState(this.UpdateState), obj, (object) state);
-      }
-      else
-      {
-        switch (state)
+        private void ButtonStartClick(object sender, EventArgs e)
         {
-          case CrossThreadComm.State.connect:
-            this.panel5.BackColor = Color.Green;
-            this._connected = true;
-            break;
-          case CrossThreadComm.State.disconnect:
-            this.panel5.BackColor = Color.Orange;
-            this._connected = false;
-            break;
-          case CrossThreadComm.State.terminate:
-            this._connected = false;
-            this.ConnInfoTrace((object) "UpdateState( ) -- service has finished");
-            break;
+            this.AddOrUpdate("serialport", (string)this.listBoxSerialPorts.SelectedItem ?? this.listBoxSerialPorts.Text);
+            this.AddOrUpdate("baudrate", (string)this.listBoxBaudrate.SelectedItem);
+            this.AddOrUpdate("socketport", this.textBoxSocketPort.Text);
+            this.listBoxBaudrate.Enabled = false;
+            this.listBoxSerialPorts.Enabled = false;
+            this.textBoxSocketPort.Enabled = false;
+            if (!this.radioButtonServer.Checked)
+                this.AddOrUpdate("remotehost", this.textBoxRemoteHost.Text);
+            else
+                this.AddOrUpdate("remotehost", (string)null);
+            this.buttonStop.Enabled = true;
+            this.buttonStart.Enabled = false;
+            this.buttonRefresh.Enabled = false;
+            this.thServiceThread = new Thread(new ThreadStart(this.ServiceThread));
+            this._running = true;
+            this.thServiceThread.Start();
+            Thread.Sleep(100);
+            if (!this._running)
+            {
+                this.groupBox1.Enabled = true;
+                this.radioButtonClient.Enabled = true;
+                this.radioButtonServer.Enabled = true;
+                this.buttonStop.Enabled = false;
+                this.buttonStart.Enabled = true;
+                this.buttonRefresh.Enabled = true;
+                this.panel5.BackColor = Color.Gray;
+            }
+            else
+            {
+                this.groupBox1.Enabled = false;
+                this.radioButtonClient.Enabled = false;
+                this.radioButtonServer.Enabled = false;
+                this.panel5.BackColor = Color.Orange;
+            }
         }
-      }
-    }
 
-    public void UpdateRxTx(object obj, int bytesFromSerial, int bytesToSerial)
-    {
-      if (this.InvokeRequired)
-      {
-        if (this._shuttingdown)
-          return;
-        this.Invoke((Delegate) new CrossThreadComm.UpdateRXTX(this.UpdateRxTx), obj, (object) bytesFromSerial, (object) bytesToSerial);
-      }
-      else
-      {
-        this._DiagSerportRx += bytesFromSerial;
-        this._DiagSerportTx += bytesToSerial;
-      }
-    }
-
-    public void ConnInfoTrace(object obj)
-    {
-      if (this.InvokeRequired)
-      {
-        if (this._shuttingdown)
-          return;
-        this.Invoke((Delegate) new CrossThreadComm.TraceCb(this.ConnInfoTrace), obj);
-      }
-      else
-      {
-        string str = (string) obj;
-        lock (this._traceListBoxLock)
+        private void HandleStop()
         {
-          this.labelRxSerial.Text = this._DiagSerportRx.ToString();
-          this.labelSerialTX.Text = this._DiagSerportTx.ToString();
-          if (str != null)
-          {
-            this.listBoxInfoTrace.Items.Add((object) (DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + str));
-            if (this.listBoxInfoTrace.Items.Count > 256)
-              this.listBoxInfoTrace.Items.RemoveAt(0);
-            this.listBoxInfoTrace.SelectedIndex = this.listBoxInfoTrace.Items.Count - 1;
-          }
-          else
-          {
-            this.listBoxInfoTrace.Items.Clear();
-            this._DiagSerportRx = 0;
-            this._DiagSerportTx = 0;
-            this.labelRxSerial.Text = this._DiagSerportRx.ToString();
-            this.labelSerialTX.Text = this._DiagSerportTx.ToString();
-          }
+            if (this.cm != null)
+            {
+                this.ConnInfoTrace((object)"Stop request set to Client Mode");
+                this.cm.StopRequest();
+            }
+            if (this.sm != null)
+            {
+                this.ConnInfoTrace((object)"Stop request set to Server Mode");
+                this.sm.StopRequest();
+            }
+            this.cm = (ClientMode)null;
+            this.sm = (ServerMode)null;
+            this.panel5.BackColor = Color.Gray;
+            this.buttonStop.Enabled = false;
+            this.buttonStart.Enabled = true;
+            this.buttonRefresh.Enabled = true;
+            this.listBoxBaudrate.Enabled = true;
+            this.listBoxSerialPorts.Enabled = true;
+            this.textBoxSocketPort.Enabled = true;
+            this.groupBox1.Enabled = true;
+            this.radioButtonClient.Enabled = true;
+            this.radioButtonServer.Enabled = true;
         }
-      }
-    }
 
-    private void InitializeSerialToIPGui()
-    {
-      this.ConnInfoTrace((object) "GUI init with a serial port scan.");
-      this.listBoxBaudrate.DataSource = (object) this._items;
-      this.listBoxBaudrate.SelectedIndex = 3;
-      this.listBoxSerialPorts.Items.Clear();
-      string[] portNames = SerialPort.GetPortNames();
-      if (portNames.Length == 0)
-      {
-        this.listBoxSerialPorts.Items.Add((object) "error: none available!");
-        this.ConnInfoTrace((object) "error: no serial ports found!");
-        this.listBoxSerialPorts.ForeColor = Color.Red;
-        this.buttonStart.Enabled = false;
-      }
-      else
-      {
-        this.listBoxSerialPorts.ForeColor = Color.Black;
-        foreach (object obj in portNames)
-          this.listBoxSerialPorts.Items.Add(obj);
-        if (this.listBoxSerialPorts.Items.Count >= 7)
-          this.listBoxBaudrate.SelectedIndex = 7;
-      }
-      this.textBoxSocketPort.Text = this.dn["socketport"];
-      this.radioButtonServer.Checked = true;
-      this.labelRemoteHost.Enabled = false;
-      this.textBoxRemoteHost.Enabled = false;
-      this.buttonStop.Enabled = false;
-    }
+        private void ButtonStopClick(object sender, EventArgs e) => this.HandleStop();
 
-    public MainForm()
-    {
-      this.InitializeComponent();
-      MainForm._conInfoTrace = new CrossThreadComm.TraceCb(this.ConnInfoTrace);
-      MainForm._updateState = new CrossThreadComm.UpdateState(this.UpdateState);
-      MainForm._updRxTx = new CrossThreadComm.UpdateRXTX(this.UpdateRxTx);
-      this.dn.Add("serialport", "COM1");
-      this.dn.Add("baudrate", "9600");
-      this.dn.Add("socketport", "8888");
-      this.dn.Add("remotehost", (string) null);
-      this.dn.Add("socksend", (string) null);
-      this.dn.Add("sockfilesend", (string) null);
-      this._items.Add("1200");
-      this._items.Add("2400");
-      this._items.Add("4800");
-      this._items.Add("9600");
-      this._items.Add("19200");
-      this._items.Add("38400");
-      this._items.Add("57600");
-      this._items.Add("115200");
-      this._items.Add("230400");
-      this._items.Add("460800");
-      this._items.Add("921600");
-      ToolTip toolTip = new ToolTip();
-      toolTip.AutoPopDelay = 5000;
-      toolTip.InitialDelay = 1000;
-      toolTip.ReshowDelay = 500;
-      toolTip.ShowAlways = true;
-      toolTip.SetToolTip((Control) this.buttonRefresh, "Refresh the serial port list");
-      toolTip.SetToolTip((Control) this.buttonClearLog, "Clear the trace log");
-      this.panel5.BackColor = Color.Gray;
-      this.InitializeSerialToIPGui();
-    }
+        public void UpdateState(object obj, CrossThreadComm.State state)
+        {
+            if (this.InvokeRequired)
+            {
+                if (this._shuttingdown)
+                    return;
+                this.Invoke((Delegate)new CrossThreadComm.UpdateState(this.UpdateState), obj, (object)state);
+            }
+            else
+            {
+                switch (state)
+                {
+                    case CrossThreadComm.State.connect:
+                        this.panel5.BackColor = Color.Green;
+                        this._connected = true;
+                        break;
+                    case CrossThreadComm.State.disconnect:
+                        this.panel5.BackColor = Color.Orange;
+                        this._connected = false;
+                        break;
+                    case CrossThreadComm.State.terminate:
+                        this._connected = false;
+                        this.ConnInfoTrace((object)"UpdateState( ) -- service has finished");
+                        break;
+                }
+            }
+        }
 
-    private void MainFormFormClosing(object sender, FormClosingEventArgs e)
-    {
-      this._shuttingdown = true;
-      this._is_shown = false;
-      this.HandleStop();
-    }
+        public void UpdateRxTx(object obj, int bytesFromSerial, int bytesToSerial)
+        {
+            if (this.InvokeRequired)
+            {
+                if (this._shuttingdown)
+                    return;
+                this.Invoke((Delegate)new CrossThreadComm.UpdateRXTX(this.UpdateRxTx), obj, (object)bytesFromSerial, (object)bytesToSerial);
+            }
+            else
+            {
+                this._DiagSerportRx += bytesFromSerial;
+                this._DiagSerportTx += bytesToSerial;
+            }
+        }
 
-    private void ButtonRefreshClick(object sender, EventArgs e) => this.InitializeSerialToIPGui();
+        public void ConnInfoTrace(object obj)
+        {
+            if (this.InvokeRequired)
+            {
+                if (this._shuttingdown)
+                    return;
+                this.Invoke((Delegate)new CrossThreadComm.TraceCb(this.ConnInfoTrace), obj);
+            }
+            else
+            {
+                string str = (string)obj;
+                lock (this._traceListBoxLock)
+                {
+                    this.labelRxSerial.Text = this._DiagSerportRx.ToString();
+                    this.labelSerialTX.Text = this._DiagSerportTx.ToString();
+                    if (str != null)
+                    {
+                        this.listBoxInfoTrace.Items.Add((object)(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + str));
+                        if (this.listBoxInfoTrace.Items.Count > 256)
+                            this.listBoxInfoTrace.Items.RemoveAt(0);
+                        this.listBoxInfoTrace.SelectedIndex = this.listBoxInfoTrace.Items.Count - 1;
+                    }
+                    else
+                    {
+                        this.listBoxInfoTrace.Items.Clear();
+                        this._DiagSerportRx = 0;
+                        this._DiagSerportTx = 0;
+                        this.labelRxSerial.Text = this._DiagSerportRx.ToString();
+                        this.labelSerialTX.Text = this._DiagSerportTx.ToString();
+                    }
+                }
+            }
+        }
 
-    private void ButtonClearLogClick(object sender, EventArgs e) => this.ConnInfoTrace((object) null);
+        private void InitializeSerialToIPGui()
+        {
+            this.ConnInfoTrace((object)"GUI init with a serial port scan.");
+            this.listBoxBaudrate.DataSource = (object)this._items;
+            this.listBoxBaudrate.SelectedIndex = 3;
+            this.listBoxSerialPorts.Items.Clear();
+            string[] portNames = SerialPort.GetPortNames();
+            if (portNames.Length == 0)
+            {
+                this.listBoxSerialPorts.Items.Add((object)"error: none available!");
+                this.ConnInfoTrace((object)"error: no serial ports found!");
+                this.listBoxSerialPorts.ForeColor = Color.Red;
+                this.buttonStart.Enabled = false;
+            }
+            else
+            {
+                this.listBoxSerialPorts.ForeColor = Color.Black;
+                foreach (object obj in portNames)
+                    this.listBoxSerialPorts.Items.Add(obj);
+                if (this.listBoxSerialPorts.Items.Count >= 7)
+                    this.listBoxBaudrate.SelectedIndex = 7;
+            }
+            this.textBoxSocketPort.Text = this.dn["socketport"];
+            this.radioButtonServer.Checked = true;
+            this.labelRemoteHost.Enabled = false;
+            this.textBoxRemoteHost.Enabled = false;
+            this.buttonStop.Enabled = false;
+        }
 
-    private void CheckEnabledDisabledButtons()
-    {
-      string str = this.listBoxSerialPorts.SelectedItem != null ? (string) this.listBoxSerialPorts.SelectedItem : this.listBoxSerialPorts.Text;
-      if (str == null)
-        this.buttonStart.Enabled = false;
-      else if (str.ToLower().IndexOf("select") >= 0 || str.Length < 4 || str.ToLower().IndexOf("--") >= 0)
-        this.buttonStart.Enabled = false;
-      else
-        this.buttonStart.Enabled = true;
-    }
+        public MainForm()
+        {
+            this.InitializeComponent();
+            MainForm._conInfoTrace = new CrossThreadComm.TraceCb(this.ConnInfoTrace);
+            MainForm._updateState = new CrossThreadComm.UpdateState(this.UpdateState);
+            MainForm._updRxTx = new CrossThreadComm.UpdateRXTX(this.UpdateRxTx);
+            this.dn.Add("serialport", "COM1");
+            this.dn.Add("baudrate", "9600");
+            this.dn.Add("socketport", "8888");
+            this.dn.Add("remotehost", (string)null);
+            this.dn.Add("socksend", (string)null);
+            this.dn.Add("sockfilesend", (string)null);
+            this._items.Add("1200");
+            this._items.Add("2400");
+            this._items.Add("4800");
+            this._items.Add("9600");
+            this._items.Add("19200");
+            this._items.Add("38400");
+            this._items.Add("57600");
+            this._items.Add("115200");
+            this._items.Add("230400");
+            this._items.Add("460800");
+            this._items.Add("921600");
+            ToolTip toolTip = new ToolTip();
+            toolTip.AutoPopDelay = 5000;
+            toolTip.InitialDelay = 1000;
+            toolTip.ReshowDelay = 500;
+            toolTip.ShowAlways = true;
+            toolTip.SetToolTip((Control)this.buttonRefresh, "Refresh the serial port list");
+            toolTip.SetToolTip((Control)this.buttonClearLog, "Clear the trace log");
+            this.panel5.BackColor = Color.Gray;
+            this.InitializeSerialToIPGui();
+        }
 
-    private void ListBoxSerialPortsSelectedIndexChanged(object sender, EventArgs e) => this.CheckEnabledDisabledButtons();
+        private void MainFormFormClosing(object sender, FormClosingEventArgs e)
+        {
+            this._shuttingdown = true;
+            this._is_shown = false;
+            this.HandleStop();
+        }
 
-    private void ListBoxSerialPortsTextUpdate(object sender, EventArgs e) => this.CheckEnabledDisabledButtons();
+        private void ButtonRefreshClick(object sender, EventArgs e) => this.InitializeSerialToIPGui();
 
-    private void Button1Click(object sender, EventArgs e)
-    {
-      this.HandleStop();
-      this.Close();
-    }
+        private void ButtonClearLogClick(object sender, EventArgs e) => this.ConnInfoTrace((object)null);
 
-    private void MainFormMouseDown(object sender, MouseEventArgs e)
-    {
-      Point point = new Point(e.X, e.Y);
-      this.drag = true;
-      this.start_point = new Point(e.X, e.Y);
-      if (e.Button != MouseButtons.Right)
-        return;
-      ++point.X;
-      ++point.Y;
-    }
+        private void CheckEnabledDisabledButtons()
+        {
+            string str = this.listBoxSerialPorts.SelectedItem != null ? (string)this.listBoxSerialPorts.SelectedItem : this.listBoxSerialPorts.Text;
+            if (str == null)
+                this.buttonStart.Enabled = false;
+            else if (str.ToLower().IndexOf("select") >= 0 || str.Length < 4 || str.ToLower().IndexOf("--") >= 0)
+                this.buttonStart.Enabled = false;
+            else
+                this.buttonStart.Enabled = true;
+        }
 
-    private void Form_MouseUp(object sender, MouseEventArgs e) => this.drag = false;
+        private void ListBoxSerialPortsSelectedIndexChanged(object sender, EventArgs e) => this.CheckEnabledDisabledButtons();
 
-    private void Form_MouseMove(object sender, MouseEventArgs e)
-    {
-      if (!this.drag)
-        return;
-      Point screen = this.PointToScreen(new Point(e.X, e.Y));
-      this.Location = new Point(screen.X - this.start_point.X, screen.Y - this.start_point.Y);
-    }
+        private void ListBoxSerialPortsTextUpdate(object sender, EventArgs e) => this.CheckEnabledDisabledButtons();
 
-    public bool Draggable
-    {
-      set => this.draggable = value;
-      get => this.draggable;
-    }
+        private void Button1Click(object sender, EventArgs e)
+        {
+            this.HandleStop();
+            this.Close();
+        }
 
-    private void Label5MouseDown(object sender, MouseEventArgs e)
-    {
-      MouseEventArgs e1 = e;
-      this.MainFormMouseDown(sender, e1);
-    }
+        private void MainFormMouseDown(object sender, MouseEventArgs e)
+        {
+            Point point = new Point(e.X, e.Y);
+            this.drag = true;
+            this.start_point = new Point(e.X, e.Y);
+            if (e.Button != MouseButtons.Right)
+                return;
+            ++point.X;
+            ++point.Y;
+        }
 
-    private void Label5MouseMove(object sender, MouseEventArgs e)
-    {
-      MouseEventArgs e1 = e;
-      this.Form_MouseMove(sender, e1);
-    }
+        private void Form_MouseUp(object sender, MouseEventArgs e) => this.drag = false;
 
-    private void Label5MouseUp(object sender, MouseEventArgs e) => this.Form_MouseUp(sender, e);
+        private void Form_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!this.drag)
+                return;
+            Point screen = this.PointToScreen(new Point(e.X, e.Y));
+            this.Location = new Point(screen.X - this.start_point.X, screen.Y - this.start_point.Y);
+        }
 
-    private void MainFormLoad(object sender, EventArgs e) => this._is_shown = true;
+        public bool Draggable
+        {
+            set => this.draggable = value;
+            get => this.draggable;
+        }
 
-    private void ButtonMinimizeClick(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;
+        private void Label5MouseDown(object sender, MouseEventArgs e)
+        {
+            MouseEventArgs e1 = e;
+            this.MainFormMouseDown(sender, e1);
+        }
 
-    private void Button1MouseHover(object sender, EventArgs e)
-    {
-    }
+        private void Label5MouseMove(object sender, MouseEventArgs e)
+        {
+            MouseEventArgs e1 = e;
+            this.Form_MouseMove(sender, e1);
+        }
 
-    private void Button1MouseEnter(object sender, EventArgs e)
-    {
-      this.button1.ForeColor = SystemColors.ControlLightLight;
-      this.button1.BackColor = Color.Red;
-      this.button1.Height = 26;
-    }
+        private void Label5MouseUp(object sender, MouseEventArgs e) => this.Form_MouseUp(sender, e);
 
-    private void Button1MouseLeave(object sender, EventArgs e)
-    {
-      this.button1.ForeColor = SystemColors.ControlLightLight;
-      this.button1.BackColor = Color.DodgerBlue;
-      this.button1.Height = 26;
-    }
+        private void MainFormLoad(object sender, EventArgs e) => this._is_shown = true;
 
-    private void MainFormActivated(object sender, EventArgs e)
-    {
-      if (!this._is_shown)
-        return;
-      this.Opacity = 1.0;
-    }
+        private void ButtonMinimizeClick(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;
 
-    private void MainFormDeactivate(object sender, EventArgs e)
-    {
-      if (!this._is_shown)
-        return;
-      this.Opacity = 0.8;
-    }
+        private void Button1MouseHover(object sender, EventArgs e)
+        {
+        }
 
-    protected override void Dispose(bool disposing)
-    {
-      if (disposing && this.components != null)
-        this.components.Dispose();
-      base.Dispose(disposing);
-    }
+        private void Button1MouseEnter(object sender, EventArgs e)
+        {
+            this.btnCloseForm.ForeColor = SystemColors.ControlLightLight;
+            this.btnCloseForm.BackColor = Color.Red;
+            this.btnCloseForm.Height = 26;
+        }
 
-    private void InitializeComponent()
-    {
+        private void Button1MouseLeave(object sender, EventArgs e)
+        {
+            this.btnCloseForm.ForeColor = SystemColors.ControlLightLight;
+            this.btnCloseForm.BackColor = Color.DodgerBlue;
+            this.btnCloseForm.Height = 26;
+        }
+
+        private void MainFormActivated(object sender, EventArgs e)
+        {
+            if (!this._is_shown)
+                return;
+            this.Opacity = 1.0;
+        }
+
+        private void MainFormDeactivate(object sender, EventArgs e)
+        {
+            if (!this._is_shown)
+                return;
+            this.Opacity = 0.8;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && this.components != null)
+                this.components.Dispose();
+            base.Dispose(disposing);
+        }
+
+        private void InitializeComponent()
+        {
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.textBoxSocketPort = new System.Windows.Forms.TextBox();
@@ -447,7 +447,7 @@ namespace SerialToIpGUI
             this.listBoxSerialPorts = new System.Windows.Forms.ComboBox();
             this.listBoxBaudrate = new System.Windows.Forms.ComboBox();
             this.label4 = new System.Windows.Forms.Label();
-            this.button1 = new System.Windows.Forms.Button();
+            this.btnCloseForm = new System.Windows.Forms.Button();
             this.label5 = new System.Windows.Forms.Label();
             this.panel1 = new System.Windows.Forms.Panel();
             this.panel2 = new System.Windows.Forms.Panel();
@@ -641,22 +641,22 @@ namespace SerialToIpGUI
             this.label4.TabIndex = 18;
             this.label4.Text = "Socket Mode:";
             // 
-            // button1
+            // btnCloseForm
             // 
-            this.button1.BackColor = System.Drawing.Color.DodgerBlue;
-            this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.button1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F);
-            this.button1.ForeColor = System.Drawing.SystemColors.ControlLightLight;
-            this.button1.Location = new System.Drawing.Point(311, -2);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(48, 26);
-            this.button1.TabIndex = 19;
-            this.button1.Text = "X";
-            this.button1.UseVisualStyleBackColor = false;
-            this.button1.Click += new System.EventHandler(this.Button1Click);
-            this.button1.MouseEnter += new System.EventHandler(this.Button1MouseEnter);
-            this.button1.MouseLeave += new System.EventHandler(this.Button1MouseLeave);
-            this.button1.MouseHover += new System.EventHandler(this.Button1MouseHover);
+            this.btnCloseForm.BackColor = System.Drawing.Color.DodgerBlue;
+            this.btnCloseForm.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnCloseForm.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F);
+            this.btnCloseForm.ForeColor = System.Drawing.SystemColors.ControlLightLight;
+            this.btnCloseForm.Location = new System.Drawing.Point(311, -2);
+            this.btnCloseForm.Name = "btnCloseForm";
+            this.btnCloseForm.Size = new System.Drawing.Size(48, 26);
+            this.btnCloseForm.TabIndex = 19;
+            this.btnCloseForm.Text = "X";
+            this.btnCloseForm.UseVisualStyleBackColor = false;
+            this.btnCloseForm.Click += new System.EventHandler(this.Button1Click);
+            this.btnCloseForm.MouseEnter += new System.EventHandler(this.Button1MouseEnter);
+            this.btnCloseForm.MouseLeave += new System.EventHandler(this.Button1MouseLeave);
+            this.btnCloseForm.MouseHover += new System.EventHandler(this.Button1MouseHover);
             // 
             // label5
             // 
@@ -786,7 +786,7 @@ namespace SerialToIpGUI
             this.Controls.Add(this.panel3);
             this.Controls.Add(this.panel2);
             this.Controls.Add(this.panel1);
-            this.Controls.Add(this.button1);
+            this.Controls.Add(this.btnCloseForm);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.listBoxBaudrate);
             this.Controls.Add(this.listBoxSerialPorts);
@@ -818,18 +818,18 @@ namespace SerialToIpGUI
             this.ResumeLayout(false);
             this.PerformLayout();
 
-    }
+        }
 
-    private void RadioButtonServerCheckedChanged(object sender, EventArgs e)
-    {
-      this.labelRemoteHost.Enabled = false;
-      this.textBoxRemoteHost.Enabled = false;
-    }
+        private void RadioButtonServerCheckedChanged(object sender, EventArgs e)
+        {
+            this.labelRemoteHost.Enabled = false;
+            this.textBoxRemoteHost.Enabled = false;
+        }
 
-    private void RadioButtonClientCheckedChanged(object sender, EventArgs e)
-    {
-      this.labelRemoteHost.Enabled = true;
-      this.textBoxRemoteHost.Enabled = true;
+        private void RadioButtonClientCheckedChanged(object sender, EventArgs e)
+        {
+            this.labelRemoteHost.Enabled = true;
+            this.textBoxRemoteHost.Enabled = true;
+        }
     }
-  }
 }
