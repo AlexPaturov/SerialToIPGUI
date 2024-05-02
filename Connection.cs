@@ -9,193 +9,194 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Ports;
 using System.Net.Sockets;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading;
 
 namespace serialtoip
 {
-  public class Connection
-  {
-    private CrossThreadComm.TraceCb _conInfoCallback;
-    private CrossThreadComm.UpdateState _updState;
-    private CrossThreadComm.UpdateRXTX _updRxTx;
-    public Socket socket;
-    private SerialPort _sp;
-    private string _remotehost;
-    private int _remoteport;
-    private bool _isfree = true;
-    private Dictionary<string, string> _d;
-    private bool _keepOpen = true;
-
-    public Connection()
+    public class Connection
     {
-    }
+        private CrossThreadComm.TraceCb _conInfoCallback;
+        private CrossThreadComm.UpdateState _updState;
+        private CrossThreadComm.UpdateRXTX _updRxTx;
+        public Socket socket;
+        private Socket _moxaTC;
+        private bool _isfree = true;
+        private Dictionary<string, string> _d;
+        private bool _keepOpen = true;
 
-    public Connection(
-      Socket soc,
-      Dictionary<string, string> d,
-      SerialPort sp,
-      CrossThreadComm.TraceCb conInfoCb,
-      CrossThreadComm.UpdateState updState)
-    {
-      this.StartConnection(soc, d, sp, conInfoCb, updState);
-    }
-
-    public Connection(
-      Socket soc,
-      Dictionary<string, string> d,
-      SerialPort sp,
-      CrossThreadComm.TraceCb conInfoCb,
-      CrossThreadComm.UpdateState updState,
-      CrossThreadComm.UpdateRXTX updRxTx)
-    {
-      this.StartConnection(soc, d, sp, conInfoCb, updState, updRxTx);
-    }
-
-    public void SetConnInfoTraceCallback(CrossThreadComm.TraceCb conInfoCb) => this._conInfoCallback = conInfoCb;
-
-    public bool IsFree() => this._isfree;
-
-    public void TraceLine(string s)
-    {
-      if (this._conInfoCallback == null)
-        return;
-      this._conInfoCallback((object) s);
-    }
-
-    public void StopRequest() => this._keepOpen = false;
-
-    public bool StartConnection(
-      Socket soc,
-      Dictionary<string, string> d,
-      SerialPort sp,
-      CrossThreadComm.TraceCb conInfoCb,
-      CrossThreadComm.UpdateState updState)
-    {
-      return this.StartConnection(soc, d, sp, conInfoCb, updState, (CrossThreadComm.UpdateRXTX) null);
-    }
-
-    public bool StartConnection(
-      Socket soc,
-      Dictionary<string, string> d,
-      SerialPort sp,
-      CrossThreadComm.TraceCb conInfoCb,
-      CrossThreadComm.UpdateState updState,
-      CrossThreadComm.UpdateRXTX updRxTx)
-    {
-      this.socket = soc;
-      this._sp = sp;
-      this._d = d;
-      this.SetConnInfoTraceCallback(conInfoCb);
-      this._updState = updState;
-      this._updRxTx = updRxTx;
-      if (this._updState != null)
-        this._updState((object) this, CrossThreadComm.State.start);
-      this._remotehost = d["remotehost"];
-      this._remoteport = int.Parse(d["socketport"].Trim());
-      this._isfree = false;
-      if (this._remotehost != null)
-      {
-        if (this._remotehost.Length > 3)
+        public Connection()
         {
-          try
-          {
-            this.TraceLine("Connecting to remote host " + this._remotehost + ":" + this._remoteport.ToString());
-            this.socket.Connect(this._remotehost, this._remoteport);
-          }
-          catch (Exception ex)
-          {
-            this.TraceLine("CLIENT SOCKET CONNECT - ERROR OCCURED:\r\n" + ex.ToString());
-            throw ex;
-          }
         }
-      }
-      if (!this._sp.IsOpen)
-      {
-        this.TraceLine("Trying to open serial port " + this._sp.PortName);
-        try
-        {
-          this._sp.Open();
-        }
-        catch (Exception ex)
-        {
-          this.TraceLine("SERIAL PORT OPEN - ERROR OCCURED:\r\n" + ex.ToString());
-          if (this.socket.Connected)
-            this.socket.Close();
-          throw ex;
-        }
-        this.TraceLine("Serial port opened OK");
-      }
-      new Thread(new ThreadStart(this.Tranceiver)).Start();
-      return true;
-    }
 
-    private void DoStartupActions()
-    {
-      if (this._d["socksend"] != null)
-      {
-        this.TraceLine("Sending something to socket ");
-        byte[] bytes = new UTF8Encoding().GetBytes(this._d["socksend"]);
-        this.socket.Send(bytes, bytes.Length, SocketFlags.None);
-      }
-      if (this._d["sockfilesend"] == null)
-        return;
-      this.TraceLine("Sending file " + this._d["sockfilesend"] + " to socket");
-      byte[] buffer = File.ReadAllBytes(this._d["sockfilesend"]);
-      this.socket.Send(buffer, buffer.Length, SocketFlags.None);
-    }
+        public Connection(
+            Socket soc,
+            Dictionary<string, string> d,
+            Socket moxaTC,
+            CrossThreadComm.TraceCb conInfoCb,
+            CrossThreadComm.UpdateState updState)
+        {
+            StartConnection(soc, d, moxaTC, conInfoCb, updState);
+        }
 
-    private int LimitTo(int i, int limit) => i > limit ? limit : i;
+        public Connection(
+            Socket soc,
+            Dictionary<string, string> d,
+            Socket moxaTC,
+            CrossThreadComm.TraceCb conInfoCb,
+            CrossThreadComm.UpdateState updState,
+            CrossThreadComm.UpdateRXTX updRxTx)
+        {
+            StartConnection(soc, d, moxaTC, conInfoCb, updState, updRxTx);
+        }
 
-    private void Tranceiver()
-    {
-      byte[] buffer = new byte[8192];
-      this._keepOpen = true;
-      this.TraceLine("Client connected from " + this.socket.RemoteEndPoint.ToString());
-      if (this._updState != null)
-        this._updState((object) this, CrossThreadComm.State.connect);
-      this.DoStartupActions();
-      while (this._keepOpen)
-      {
-        bool flag = false;
-        int num1 = this.LimitTo(this.socket.Available, 8192);
-        if (num1 > 0)
+        public void SetConnInfoTraceCallback(CrossThreadComm.TraceCb conInfoCb) => _conInfoCallback = conInfoCb;
+
+        public bool IsFree() => _isfree;
+
+        public void TraceLine(string s)
         {
-          if (this._updRxTx != null)
-            this._updRxTx((object) this, 0, num1);
-          this.TraceLine("IP-to-SERIAL " + num1.ToString());
-          this.socket.Receive(buffer, num1, SocketFlags.None);
-          this._sp.Write(buffer, 0, num1);
-          flag = true;
+            if (_conInfoCallback == null)
+                return;
+            _conInfoCallback((object)s);
         }
-        int num2 = this.LimitTo(this._sp.BytesToRead, 8192);
-        if (num2 > 0)
+
+        public void StopRequest() => _keepOpen = false;
+
+        public bool StartConnection(
+          Socket soc,
+          Dictionary<string, string> d,
+          Socket moxaTC,
+          CrossThreadComm.TraceCb conInfoCb,
+          CrossThreadComm.UpdateState updState)
         {
-          if (this._updRxTx != null)
-            this._updRxTx((object) this, num2, 0);
-          this.TraceLine("SERIAL-to-IP " + num2.ToString());
-          this._sp.Read(buffer, 0, num2);
-          this.socket.Send(buffer, num2, SocketFlags.None);
-          flag = true;
+            return StartConnection(soc, d, moxaTC, conInfoCb, updState, (CrossThreadComm.UpdateRXTX)null);
         }
-        if (this.socket.Poll(3000, SelectMode.SelectRead) & this.socket.Available == 0)
+
+        public bool StartConnection(
+          Socket soc,
+          Dictionary<string, string> d,
+          Socket moxaTC,
+          CrossThreadComm.TraceCb conInfoCb,
+          CrossThreadComm.UpdateState updState,
+          CrossThreadComm.UpdateRXTX updRxTx)
         {
-          this.TraceLine("IP connection lost ");
-          this._keepOpen = false;
+            socket = soc;
+            _moxaTC = moxaTC;
+            _d = d;
+            SetConnInfoTraceCallback(conInfoCb);
+            _updState = updState;
+            _updRxTx = updRxTx;
+
+            if (_updState != null)
+                _updState((object)this, CrossThreadComm.State.start);
+            _isfree = false;
+
+            if (!_moxaTC.Connected)
+            {
+                TraceLine("Trying to connect to client " + _d["moxaHost"] + ":" + _d["moxaPort"]);
+                try
+                {
+                    _moxaTC.Connect(_d["moxaHost"], int.Parse(_d["moxaPort"]));
+                }
+                catch (Exception ex)
+                {
+                    TraceLine("CONNECT TO CLIENT - ERROR OCCURED:\r\n" + ex.ToString());
+                    if (socket.Connected)
+                        socket.Close();
+                    throw ex;
+                }
+                TraceLine("CONNECT TO CLIENT - OK");
+            }
+            new Thread(new ThreadStart(Tranceiver)).Start();
+            return true;
         }
-        if (!flag)
-          Thread.Sleep(1);
-      }
-      if (this._updState != null)
-        this._updState((object) this, CrossThreadComm.State.disconnect);
-      this.TraceLine("Client disconnected from " + this.socket.RemoteEndPoint.ToString());
-      if (this._sp.IsOpen)
-      {
-        this.TraceLine("Closing the serial port " + this._sp.PortName);
-        this._sp.Close();
-      }
-      this.socket.Close();
-      this._isfree = true;
+
+        private void Tranceiver()
+        {
+            byte[] buffer = new byte[8192];
+            _keepOpen = true;
+            
+            TraceLine("Moxa connected from " + _d["moxaHost"] +":"+ int.Parse(_d["moxaPort"]));
+            
+            if (_updState != null)
+                _updState((object)this, CrossThreadComm.State.connect);
+            
+            while (_keepOpen)
+            {
+                bool flag = false;
+
+                int colByteClient = LimitTo(socket.Available, 8192);
+                // ------------------------------ от клиента пришёл запрос -----------------------------------------------------------    
+                if (colByteClient > 0) // 
+                {
+                    if (_updRxTx != null)
+                        _updRxTx((object)this, 0, colByteClient);
+                    
+                    // здесь нужен будет трай, который перехватит, обработает, если клиент живой - вернёт в правильном формате.
+                    socket.Receive(buffer, colByteClient, SocketFlags.None);    // получил данные в буфер
+                    #region only for show buffer data to textbox
+                    byte[] newArray = new byte[colByteClient];                  // установил размерность нового массива
+                    Buffer.BlockCopy(buffer, 0, newArray, 0, colByteClient);    // копирую данные в промежуточный массив для отображения
+                    TraceLine("client to moxa " + colByteClient.ToString() + "  " + Encoding.GetEncoding(1251).GetString(newArray));
+                    #endregion
+
+                    _moxaTC.Send(buffer, colByteClient, SocketFlags.None);                    
+                    
+                    Thread.Sleep(100); // подождём пока данные прийдут - а надо ?
+                    flag = true;
+                }
+                // ------------------------------ от клиента пришёл запрос -----------------------------------------------------------
+
+                int colByteMoxa = LimitTo(_moxaTC.Available, 8192);
+
+                // ------------------------------ от моксы пришёл ответ -------------------------------------------------------------- 
+                if (colByteMoxa > 0)
+                {
+                    if (_updRxTx != null)
+                        _updRxTx((object)this, colByteMoxa, 0);
+
+                    _moxaTC.Receive(buffer, colByteMoxa, SocketFlags.None);
+                    #region only for show buffer data to textbox
+                    byte[] moxaArr = new byte[colByteMoxa];                  // установил размерность нового массива
+                    Buffer.BlockCopy(buffer, 0, moxaArr, 0, colByteMoxa);    // копирую данные в промежуточный массив для отображения
+                    TraceLine("moxa to client " + colByteMoxa.ToString() + "  " + Encoding.GetEncoding(1251).GetString(buffer) + "  " + Encoding.GetEncoding(1251).GetString(moxaArr));
+                    #endregion
+                    
+                    // ------------------- здесь я буду обрабатывать и декодировать сообщение от моксы -------------------------------
+
+                    // ------------------- здесь я буду обрабатывать и декодировать сообщение от моксы -------------------------------
+                    
+                    socket.Send(buffer, colByteMoxa, SocketFlags.None);
+                    flag = true;
+                }
+                // ------------------------------ от моксы пришёл ответ --------------------------------------------------------------
+
+                if (socket.Poll(3000, SelectMode.SelectRead) & socket.Available == 0)
+                {
+                    TraceLine("IP connection lost ");
+                    _keepOpen = false;
+                }
+
+                if (!flag)
+                    Thread.Sleep(1);
+            }
+            
+            if (_updState != null)
+                _updState((object)this, CrossThreadComm.State.disconnect);
+            TraceLine("Client disconnected from " + socket.RemoteEndPoint.ToString());
+            
+            if (_moxaTC.Connected)
+            {
+                TraceLine("Closing the moxa connection " + _moxaTC.RemoteEndPoint.ToString());
+                _moxaTC.Close();
+            }
+
+            socket.Close();
+            _isfree = true;
+        }
+
+        private int LimitTo(int i, int limit) => i > limit ? limit : i;
     }
-  }
 }
