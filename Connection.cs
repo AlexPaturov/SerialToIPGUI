@@ -117,7 +117,9 @@ namespace serialtoip
         {
             byte[] buffer = new byte[8192];
             _keepOpen = true;
-            
+            string cliCmd = string.Empty;
+
+
             TraceLine("Moxa connected from " + _d["moxaHost"] +":"+ int.Parse(_d["moxaPort"]));
             
             if (_updState != null)
@@ -128,7 +130,7 @@ namespace serialtoip
                 bool flag = false;
 
                 int colByteClient = LimitTo(socket.Available, 8192);
-                // ------------------------------ от клиента пришёл запрос -----------------------------------------------------------    
+                // ------------------------------ от клиента пришёл запрос begin -----------------------------------------------------------------   
                 if (colByteClient > 0) // 
                 {
                     if (_updRxTx != null)
@@ -136,18 +138,49 @@ namespace serialtoip
                     
                     // здесь нужен будет трай, который перехватит, обработает, если клиент живой - вернёт в правильном формате.
                     socket.Receive(buffer, colByteClient, SocketFlags.None);    // получил данные в буфер
+                    
                     #region only for show buffer data to textbox
                     byte[] newArray = new byte[colByteClient];                  // установил размерность нового массива
                     Buffer.BlockCopy(buffer, 0, newArray, 0, colByteClient);    // копирую данные в промежуточный массив для отображения
                     TraceLine("client to moxa " + colByteClient.ToString() + "  " + Encoding.GetEncoding(1251).GetString(newArray));
                     #endregion
 
-                    _moxaTC.Send(buffer, colByteClient, SocketFlags.None);                    
-                    
-                    Thread.Sleep(100); // подождём пока данные прийдут - а надо ?
+                    // ------- в зависимости от команды полученной от клиента отправляю в контроллер команду begin ------------------------------
+
+                    cliCmd = Encoding.GetEncoding(1251).GetString(newArray);
+                    string RLCmd = string.Empty;
+                    switch (cliCmd) 
+                    {
+                        case "<Request method='set_mode' parameter='Static'/>" :  // 1)
+                            RLCmd = "" + "\r\n";
+                            break;
+
+                        case "<Request method='checksum'/>":                      // 2)
+                            RLCmd = "" + "\r\n";
+                            break;
+
+                        case "<Request method='get_static'/>":                    // 3) получить вес, взвешивание в статике
+                            RLCmd = "F#1"+"\r\n";
+                            break;
+
+                        case "<Request method='set_zero' parameter='0'/>":        // 4)
+                            RLCmd = "" + "\r\n";
+                            break;
+
+                        case "<Request method='restart_weight'/>":                // 5)
+                            RLCmd = "" + "\r\n";
+                            break;
+
+                        default:
+                            RLCmd = "" + "\r\n";
+                            break;
+                    }
+                    // ------- end --------------------------------
+                    _moxaTC.Send(Encoding.GetEncoding(1251).GetBytes(RLCmd), Encoding.GetEncoding(1251).GetBytes(RLCmd).Length, SocketFlags.None);                   
+                    Thread.Sleep(200); // подождём пока данные прийдут - а надо ?
                     flag = true;
                 }
-                // ------------------------------ от клиента пришёл запрос -----------------------------------------------------------
+                // ------------------------------ от клиента пришёл запрос end --------------------------------------------------------------
 
                 int colByteMoxa = LimitTo(_moxaTC.Available, 8192);
 
@@ -158,15 +191,16 @@ namespace serialtoip
                         _updRxTx((object)this, colByteMoxa, 0);
 
                     _moxaTC.Receive(buffer, colByteMoxa, SocketFlags.None);
+                    
                     #region only for show buffer data to textbox
                     byte[] moxaArr = new byte[colByteMoxa];                  // установил размерность нового массива
                     Buffer.BlockCopy(buffer, 0, moxaArr, 0, colByteMoxa);    // копирую данные в промежуточный массив для отображения
                     TraceLine("moxa to client " + colByteMoxa.ToString() + "  " + Encoding.GetEncoding(1251).GetString(buffer) + "  " + Encoding.GetEncoding(1251).GetString(moxaArr));
                     #endregion
                     
-                    // ------------------- здесь я буду обрабатывать и декодировать сообщение от моксы -------------------------------
+                    // ------------------- здесь я буду обрабатывать и декодировать сообщение от моксы begin -------------------------------
 
-                    // ------------------- здесь я буду обрабатывать и декодировать сообщение от моксы -------------------------------
+                    // ------------------- здесь я буду обрабатывать и декодировать сообщение от моксы end ---------------------------------
                     
                     socket.Send(buffer, colByteMoxa, SocketFlags.None);
                     flag = true;
