@@ -119,7 +119,6 @@ namespace serialtoip
             _keepOpen = true;
             string cliCmd = string.Empty;
 
-
             TraceLine("Moxa connected from " + _d["moxaHost"] +":"+ int.Parse(_d["moxaPort"]));
             
             if (_updState != null)
@@ -127,64 +126,35 @@ namespace serialtoip
             
             while (_keepOpen)
             {
-                bool flag = false;
-
+                bool flag = false; // флаг передачи данных клиент <-> контроллер
                 int colByteClient = LimitTo(socket.Available, 8192);
+                
                 // ------------------------------ от клиента пришёл запрос begin -----------------------------------------------------------------   
                 if (colByteClient > 0) // 
                 {
                     if (_updRxTx != null)
                         _updRxTx((object)this, 0, colByteClient);
                     
-                    // здесь нужен будет трай, который перехватит, обработает, если клиент живой - вернёт в правильном формате.
-                    socket.Receive(buffer, colByteClient, SocketFlags.None);    // получил данные в буфер
+                    socket.Receive(buffer, colByteClient, SocketFlags.None); 
                     
-                    #region only for show buffer data to textbox
-                    byte[] newArray = new byte[colByteClient];                  // установил размерность нового массива
-                    Buffer.BlockCopy(buffer, 0, newArray, 0, colByteClient);    // копирую данные в промежуточный массив для отображения
-                    TraceLine("client to moxa " + colByteClient.ToString() + "  " + Encoding.GetEncoding(1251).GetString(newArray));
-                    #endregion
-
-                    // ------- в зависимости от команды полученной от клиента отправляю в контроллер команду begin ------------------------------
-
-                    cliCmd = Encoding.GetEncoding(1251).GetString(newArray);
-                    string RLCmd = string.Empty;
-                    switch (cliCmd) 
+                    byte[] controllerCommand = DecodeClientRequestToControllerCommand(buffer, colByteClient); // Верну null если команда не корректная, иначе - команду для контроллера
+                    if (controllerCommand != null)                                          // команда корректна -> отправляем устройству
                     {
-                        case "<Request method='set_mode' parameter='Static'/>" :  // 1)
-                            RLCmd = "" + "\r\n";
-                            break;
-
-                        case "<Request method='checksum'/>":                      // 2)
-                            RLCmd = "" + "\r\n";
-                            break;
-
-                        case "<Request method='get_static'/>":                    // 3) получить вес, взвешивание в статике
-                            RLCmd = "F#1"+"\r\n";
-                            break;
-
-                        case "<Request method='set_zero' parameter='0'/>":        // 4)
-                            RLCmd = "" + "\r\n";
-                            break;
-
-                        case "<Request method='restart_weight'/>":                // 5)
-                            RLCmd = "" + "\r\n";
-                            break;
-
-                        default:
-                            RLCmd = "" + "\r\n";
-                            break;
+                        _moxaTC.Send(controllerCommand, controllerCommand.Length, SocketFlags.None);
+                        Thread.Sleep(200);                                                  // подождём пока данные прийдут - а надо ?
+                        flag = true;                                                        // передача данных контроллеру была
                     }
-                    // ------- end --------------------------------
-                    _moxaTC.Send(Encoding.GetEncoding(1251).GetBytes(RLCmd), Encoding.GetEncoding(1251).GetBytes(RLCmd).Length, SocketFlags.None);                   
-                    Thread.Sleep(200); // подождём пока данные прийдут - а надо ?
-                    flag = true;
+                    else                                                                    // формирование для клиента сообщения об ошибке
+                    {
+                        Exception ex = new Exception("Ошибка обработки запроса");
+                        byte[] errorByteArr = XMLFormatter.GetError(ex, 2);                 // отформатировал ошибку в XML формат, перевёл в byte[] 
+                        socket.Send(errorByteArr, errorByteArr.Length, SocketFlags.None);   // отправляем клиенту XML
+                    }
                 }
                 // ------------------------------ от клиента пришёл запрос end --------------------------------------------------------------
 
+                // ------------------------------ от моксы пришёл ответ --------------------------------------------------------------------- 
                 int colByteMoxa = LimitTo(_moxaTC.Available, 8192);
-
-                // ------------------------------ от моксы пришёл ответ -------------------------------------------------------------- 
                 if (colByteMoxa > 0)
                 {
                     if (_updRxTx != null)
@@ -205,7 +175,7 @@ namespace serialtoip
                     socket.Send(buffer, colByteMoxa, SocketFlags.None);
                     flag = true;
                 }
-                // ------------------------------ от моксы пришёл ответ --------------------------------------------------------------
+                // ------------------------------ от моксы пришёл ответ --------------------------------------------------------------------
 
                 if (socket.Poll(3000, SelectMode.SelectRead) & socket.Available == 0)
                 {
@@ -232,5 +202,51 @@ namespace serialtoip
         }
 
         private int LimitTo(int i, int limit) => i > limit ? limit : i;
+
+        // Перевожу команду полученную от клиента в команду для исполнения на контроллере
+        private byte[] DecodeClientRequestToControllerCommand(byte[] cliBuffer, int dataLength)
+        {
+            string controllerCommand = string.Empty;
+            byte[] clientComandArr = new byte[dataLength];                     // установил размерность массива для команды клиента
+            Buffer.BlockCopy(cliBuffer, 0, clientComandArr, 0, dataLength);    // копирую данные в промежуточный массив 
+            
+            switch (Encoding.GetEncoding(1251).GetString(clientComandArr))
+            {
+                case "<Request method='set_mode' parameter='Static'/>":     // 1)
+                    controllerCommand = "" + "\r\n";
+                    break;
+
+                case "<Request method='checksum'/>":                        // 2)
+                    controllerCommand = "" + "\r\n";
+                    break;
+
+                case "<Request method='get_static'/>":                      // 3) получить вес, взвешивание в статике
+                    controllerCommand = "F#1" + "\r\n";
+                    break;
+
+                case "<Request method='set_zero' parameter='0'/>":          // 4)
+                    controllerCommand = "" + "\r\n";
+                    break;
+
+                case "<Request method='restart_weight'/>":                  // 5)
+                    controllerCommand = "" + "\r\n";
+                    break;
+
+                default:                                                    // 6) Команда полученная от клиента - не распознана.
+                    controllerCommand = "" + "\r\n";
+                    break;
+            }
+
+            // Если команда распознана - перекодирую в байтовый массив и возвращаю, иначе верну null.
+            if (controllerCommand.Length > 0)
+            {
+                return Encoding.GetEncoding(1251).GetBytes(controllerCommand);
+            }
+            else 
+            { 
+                return null;
+            }
+        }
+
     }
 }

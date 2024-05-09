@@ -59,6 +59,7 @@
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="SerialToIpGUI\MainForm.cs">
@@ -70,6 +71,7 @@
     <Compile Include="Connection.cs" />
     <Compile Include="ServerMode.cs" />
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="XMLFormatter.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="SerialToIpGUI\MainForm.resx">
