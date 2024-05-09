@@ -167,12 +167,9 @@ namespace serialtoip
                     Buffer.BlockCopy(buffer, 0, moxaArr, 0, colByteMoxa);    // копирую данные в промежуточный массив для отображения
                     TraceLine("moxa to client " + colByteMoxa.ToString() + "  " + Encoding.GetEncoding(1251).GetString(buffer) + "  " + Encoding.GetEncoding(1251).GetString(moxaArr));
                     #endregion
-                    
-                    // ------------------- здесь я буду обрабатывать и декодировать сообщение от моксы begin -------------------------------
 
-                    // ------------------- здесь я буду обрабатывать и декодировать сообщение от моксы end ---------------------------------
-                    
-                    socket.Send(buffer, colByteMoxa, SocketFlags.None);
+                    byte[] btArr = XMLFormatter.getStatic(moxaArr);
+                    socket.Send(btArr, btArr.Length, SocketFlags.None);
                     flag = true;
                 }
                 // ------------------------------ от моксы пришёл ответ --------------------------------------------------------------------
