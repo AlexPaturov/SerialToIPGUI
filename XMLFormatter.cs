@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Xml;
 
-namespace WFClientServer
+namespace serialtoip
 {
     public static class XMLFormatter
     {
@@ -84,7 +86,7 @@ namespace WFClientServer
             return XMLtmp;
         } 
 
-        public static string getStatic(string input) 
+        public static byte[] getStatic(string input) 
         {
             Dictionary<string, string> preparedAnswer = ParseInputString(input);
 
@@ -193,17 +195,17 @@ namespace WFClientServer
                     ch3_Type.InnerText = "V";
                     ch2_StaticData.AppendChild(ch3_Type);
 
-
             // конвертирование хмл в строку
-            StringWriter stringWriter = new StringWriter();
-            XmlTextWriter xmlTextWriter = new XmlTextWriter(stringWriter);
+            //StringWriter stringWriter = new StringWriter();
+            //XmlTextWriter xmlTextWriter = new XmlTextWriter(stringWriter);
+            //xmlDoc.WriteTo(xmlTextWriter);
 
-            xmlDoc.WriteTo(xmlTextWriter);
-            return stringWriter.ToString();
+            return Encoding.GetEncoding(1251).GetBytes(xmlDoc.ToString());
+            //return stringWriter.ToString();
             // конвертирование хмл в строку
         }
 
-        public static string GetError(Exception ex, int code) 
+        public static byte[] GetError(Exception ex, int code) 
         {
             XmlDocument xmlDoc = new XmlDocument();                                                         // Create the XML declaration
             XmlDeclaration xmlDeclaration = xmlDoc.CreateXmlDeclaration("1.0", "UTF-8", null);
@@ -226,13 +228,7 @@ namespace WFClientServer
                 ch3_ErrorText.InnerText = ex.Message;
                 ch2_ErrorDescription.AppendChild(ch3_ErrorText);
 
-            // конвертирование хмл в строку
-            StringWriter stringWriter = new StringWriter();
-            XmlTextWriter xmlTextWriter = new XmlTextWriter(stringWriter);
-
-            xmlDoc.WriteTo(xmlTextWriter);
-            return stringWriter.ToString();
-            // конвертирование хмл в строку
+            return Encoding.GetEncoding(1251).GetBytes(xmlDoc.ToString());
         }
 
         // -----  ТЕСТОВАЯ ЗАГЛУШКА ------------------ по умолчанию, обязательное создание XML документа со строго описанной структурой --------------------------------------
