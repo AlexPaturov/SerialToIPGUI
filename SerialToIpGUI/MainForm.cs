@@ -62,7 +62,7 @@ namespace SerialToIpGUI
         private TextBox tbClientHost;
         private ContextMenuStrip contextMenuStrip1;
         private Label label1;
-
+        private static readonly log4net.ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         private void ServiceThread()
         {
@@ -262,6 +262,7 @@ namespace SerialToIpGUI
             this._shuttingdown = true;
             this._is_shown = false;
             this.HandleStop();
+            // здесь будет логирование завершения работы программы
         }
 
         private void ButtonRefreshClick(object sender, EventArgs e) => this.InitializeSerialToIPGui();
@@ -315,7 +316,12 @@ namespace SerialToIpGUI
 
         private void Label5MouseUp(object sender, MouseEventArgs e) => this.Form_MouseUp(sender, e);
 
-        private void MainFormLoad(object sender, EventArgs e) => this._is_shown = true;
+        private void MainFormLoad(object sender, EventArgs e)
+        { 
+            this._is_shown = true;
+            // здесь будет логирование старта программы
+            logger.Info("SOCKET SERVER MODE");
+        }
 
         private void ButtonMinimizeClick(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;
 
