@@ -262,7 +262,7 @@ namespace SerialToIpGUI
             this._shuttingdown = true;
             this._is_shown = false;
             this.HandleStop();
-            // здесь будет логирование завершения работы программы
+            logger.Info("Close " + System.Diagnostics.Process.GetCurrentProcess().ProcessName);
         }
 
         private void ButtonRefreshClick(object sender, EventArgs e) => this.InitializeSerialToIPGui();
@@ -319,8 +319,7 @@ namespace SerialToIpGUI
         private void MainFormLoad(object sender, EventArgs e)
         { 
             this._is_shown = true;
-            // здесь будет логирование старта программы
-            logger.Info("SOCKET SERVER MODE");
+            logger.Info("Start " + System.Diagnostics.Process.GetCurrentProcess().ProcessName);
         }
 
         private void ButtonMinimizeClick(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;
