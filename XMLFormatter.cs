@@ -149,7 +149,7 @@ namespace serialtoip
                 ch3_ErrorText.InnerText = ex.Message;
                 ch2_ErrorDescription.AppendChild(ch3_ErrorText);
 
-            return Encoding.GetEncoding(1251).GetBytes(xmlDoc.ToString());
+            return Encoding.GetEncoding(1251).GetBytes(xmlDoc.OuterXml);
         }
 
         // -----  ТЕСТОВАЯ ЗАГЛУШКА ------------------ по умолчанию, обязательное создание XML документа со строго описанной структурой --------------------------------------
