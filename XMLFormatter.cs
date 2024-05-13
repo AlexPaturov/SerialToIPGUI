@@ -187,19 +187,12 @@ namespace serialtoip
 
             if (workInput.Contains("F#1"))                                                                                             // 1
             {
-                //prt = workInput.Substring(workInput.IndexOf("F#1"), workInput.IndexOf("F#1")+3).Trim();
-                //if (prt != "F#1")
-                //{
-                //    throw new Exception("Answer from device is incorrect." + input);
-                //}
                 workInput = workInput.Substring(workInput.IndexOf("F#1") + 3, (workInput.Length - (workInput.IndexOf("F#1") + 3))).Trim();  // F#1
             }
             else 
             {
                 throw new Exception("Answer from device is incorrect." + input);
             }
-
-            // Проверить на длину строки, если меньше -> бросаю исключение 
 
             //string data = workInput.Substring(0, workInput.IndexOf(" "));
             XMLtmp.Add("Date", workInput.Substring(0, workInput.IndexOf(" ")));

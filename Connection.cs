@@ -22,7 +22,6 @@ namespace serialtoip
         private CrossThreadComm.UpdateRXTX _updRxTx;
         public Socket socket;
         private Socket _moxaTC;
-        Socket socLoc = (Socket)null;
         private bool _isfree = true;
         private Dictionary<string, string> _d;
         private bool _keepOpen = true;
@@ -172,9 +171,18 @@ namespace serialtoip
                     Buffer.BlockCopy(buffer, 0, moxaArr, 0, colByteMoxa);    // копирую данные в промежуточный массив для отображения
                     TraceLine("moxa to client " + colByteMoxa.ToString() + "  " + Encoding.GetEncoding(1251).GetString(buffer) + "  " + Encoding.GetEncoding(1251).GetString(moxaArr));
                     #endregion
-
-                    byte[] btArr = XMLFormatter.getStatic(moxaArr);
+                    
+                    byte[] btArr = null;
+                    try
+                    {
+                        btArr = XMLFormatter.getStatic(moxaArr);
+                    } 
+                    catch (Exception ex) 
+                    {
+                        btArr = XMLFormatter.GetError(ex, 100);                 // отформатировал ошибку в XML формат, перевёл в byte[]
+                    }
                     socket.Send(btArr, btArr.Length, SocketFlags.None);
+                    
                     flag = true;
                 }
                 // ------------------------------ от моксы пришёл ответ ---------------------------------------------------------------------
