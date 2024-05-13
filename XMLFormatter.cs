@@ -4,7 +4,7 @@ using System.Text;
 using System.Xml;
 
 /*
-    Привожу к требуемому по спецификации формату данные для ответа АРМ(у) клиента.
+    Привожу полученные от контроллера данные к требуемому по спецификации формату, для ответа АРМ(у) весов.
  */
 
 namespace serialtoip
@@ -19,17 +19,17 @@ namespace serialtoip
             { 
                 Dictionary<string, string> preparedAnswer = RawToXML(System.Text.Encoding.Default.GetString(bInput) );
 
-                XmlDocument xmlDoc = new XmlDocument();                                                     // Create the XML declaration
+                XmlDocument xmlDoc = new XmlDocument();                                                     
                 XmlDeclaration xmlDeclaration = xmlDoc.CreateXmlDeclaration("1.0", "UTF-8", null);
             
-                XmlElement rootResponse = xmlDoc.CreateElement("Response");                                 // Create the root element
-                xmlDoc.AppendChild(rootResponse);                                                           // Append the root element to the document
+                XmlElement rootResponse = xmlDoc.CreateElement("Response");                                 
+                xmlDoc.AppendChild(rootResponse);                                                           
 
-                    XmlElement ch1_State = xmlDoc.CreateElement("State");                                   // Create some child elements
+                    XmlElement ch1_State = xmlDoc.CreateElement("State");                                   
                     ch1_State.InnerText = "Success";
                     rootResponse.AppendChild(ch1_State);
 
-                    XmlElement ch1_CheckSumZero = xmlDoc.CreateElement("CheckSumZero");                     // Create some child elements
+                    XmlElement ch1_CheckSumZero = xmlDoc.CreateElement("CheckSumZero");                     
                     ch1_CheckSumZero.InnerText = "0";
                     rootResponse.AppendChild(ch1_CheckSumZero);
 
@@ -175,7 +175,7 @@ namespace serialtoip
             }
             else 
             {
-                throw new Exception("Answer from device is incorrect." + input);
+                throw new Exception("Format of answer from device is incorrect." + input);
             }
 
             XMLtmp.Add("Date", workInput.Substring(0, workInput.IndexOf(" ")));

@@ -106,7 +106,7 @@ namespace serialtoip
                     TraceLine("CONNECT TO CLIENT - ERROR OCCURED:\r\n" + ex.ToString());
                     if (socket.Connected)
                     {
-                        //socket.Shutdown(SocketShutdown.Both); // не тестировал
+                        socket.Shutdown(SocketShutdown.Both); // не тестировал
                         socket.Close();
                     }
                     throw ex;
@@ -145,7 +145,7 @@ namespace serialtoip
                     if (controllerCommand != null)                                          // команда корректна -> отправляем устройству
                     {
                         _moxaTC.Send(controllerCommand, controllerCommand.Length, SocketFlags.None);
-                        Thread.Sleep(200);                                                  // подождём пока данные прийдут - а надо ?
+                        Thread.Sleep(500);                                                  // подождём пока данные прийдут - а надо ?
                         flag = true;                                                        // передача данных контроллеру была
                     }
                     else                                                                    // формирование для клиента сообщения об ошибке
@@ -209,13 +209,14 @@ namespace serialtoip
                 _moxaTC.Close();
             }
 
+            socket.Shutdown(SocketShutdown.Both);
             socket.Close();
             _isfree = true;
         }
 
         private int LimitTo(int i, int limit) => i > limit ? limit : i;
 
-        // Перевожу команду полученную от клиента в команду для исполнения на контроллере
+        // Перевожу команду полученную от клиента в команду для исполнения контроллером
         private byte[] DecodeClientRequestToControllerCommand(byte[] cliBuffer, int dataLength)
         {
             string controllerCommand = string.Empty;
