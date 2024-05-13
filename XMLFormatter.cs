@@ -3,10 +3,16 @@ using System.Collections.Generic;
 using System.Text;
 using System.Xml;
 
+/*
+    Привожу к требуемому по спецификации формату данные для ответа АРМ(у) клиента.
+ */
+
 namespace serialtoip
 {
     public static class XMLFormatter
     {
+
+        // Получить результат статического взвешивания.
         public static byte[] getStatic(byte[] bInput) 
         {
             if (bInput != null) 
@@ -114,6 +120,10 @@ namespace serialtoip
                         ch3_ShiftPro.InnerText = preparedAnswer["ShiftPro"];
                         ch2_StaticData.AppendChild(ch3_ShiftPro);
 
+                        XmlElement ch3_Delta = xmlDoc.CreateElement("Delta");
+                        ch3_Delta.InnerText = preparedAnswer["Delta"];
+                        ch2_StaticData.AppendChild(ch3_Delta);
+
                         XmlElement ch3_Type = xmlDoc.CreateElement("Type");
                         ch3_Type.InnerText = "V";
                         ch2_StaticData.AppendChild(ch3_Type);
@@ -122,23 +132,24 @@ namespace serialtoip
             }
             else 
             {
-                return null; // вернуть ошибку
+                throw new Exception("Answer from device is incorrect. getStatic input == null");
             }
         }
 
+        // Получить ошибку в установленном спецификацией формате.
         public static byte[] GetError(Exception ex, int code) 
         {
-            XmlDocument xmlDoc = new XmlDocument();                                                         // Create the XML declaration
+            XmlDocument xmlDoc = new XmlDocument();                                                         
             XmlDeclaration xmlDeclaration = xmlDoc.CreateXmlDeclaration("1.0", "UTF-8", null);
 
-            XmlElement rootResponse = xmlDoc.CreateElement("Response");                                     // Create the root element
+            XmlElement rootResponse = xmlDoc.CreateElement("Response");                                     
             xmlDoc.AppendChild(rootResponse);
 
-            XmlElement ch1_State = xmlDoc.CreateElement("State");                                           // Create first child elements
+            XmlElement ch1_State = xmlDoc.CreateElement("State");                                           
             ch1_State.InnerText = "Error";
             rootResponse.AppendChild(ch1_State);
 
-                XmlElement ch2_ErrorDescription = xmlDoc.CreateElement("ErrorDescription");                 // Create second child elements
+                XmlElement ch2_ErrorDescription = xmlDoc.CreateElement("ErrorDescription");                 
                 rootResponse.AppendChild(ch2_ErrorDescription);
 
                 XmlElement ch3_ErrorCode = xmlDoc.CreateElement("ErrorCode");                               
@@ -152,75 +163,45 @@ namespace serialtoip
             return Encoding.GetEncoding(1251).GetBytes(xmlDoc.OuterXml);
         }
 
-        // -----  ТЕСТОВАЯ ЗАГЛУШКА ------------------ по умолчанию, обязательное создание XML документа со строго описанной структурой --------------------------------------
-        //public static string getTestNode() 
-        //{
-        //    XmlDocument xmlDoc = new XmlDocument();
-
-        //    // Create the XML declaration
-        //    XmlDeclaration xmlDeclaration = xmlDoc.CreateXmlDeclaration("1.0", "UTF-8", null);
-            
-        //    XmlElement rootElement = xmlDoc.CreateElement("Root");          // Create the root element
-        //    xmlDoc.AppendChild(rootElement);                                // Append the root element to the document
-        //    XmlElement childElement1 = xmlDoc.CreateElement("Child1");      // Create some child elements
-        //    childElement1.InnerText = "Value1";
-        //    rootElement.AppendChild(childElement1);
-
-        //    XmlElement childElement2 = xmlDoc.CreateElement("Child2");
-        //    childElement2.InnerText = "Value2";
-        //    rootElement.AppendChild(childElement2);
-
-        //    // конвертирование хмл в строку
-        //    StringWriter stringWriter = new StringWriter();
-        //    XmlTextWriter xmlTextWriter = new XmlTextWriter(stringWriter);
-
-        //    xmlDoc.WriteTo(xmlTextWriter);
-        //    return stringWriter.ToString();
-        //    // конвертирование хмл в строку
-        //}
-
+        // Разбор входной строки и приведение данных к формату в соответствии со спецификацией.
         private static Dictionary<string, string> RawToXML(string input)
         {
             Dictionary<string, string> XMLtmp = new Dictionary<string, string>();
             string workInput = input;
-            string prt = string.Empty;
 
-            if (workInput.Contains("F#1"))                                                                                             // 1
+            if (workInput.Contains("F#1"))                                                                                                  // 1
             {
-                workInput = workInput.Substring(workInput.IndexOf("F#1") + 3, (workInput.Length - (workInput.IndexOf("F#1") + 3))).Trim();  // F#1
+                workInput = workInput.Substring(workInput.IndexOf("F#1") + 3, (workInput.Length - (workInput.IndexOf("F#1") + 3))).Trim();  
             }
             else 
             {
                 throw new Exception("Answer from device is incorrect." + input);
             }
 
-            //string data = workInput.Substring(0, workInput.IndexOf(" "));
             XMLtmp.Add("Date", workInput.Substring(0, workInput.IndexOf(" ")));
-            workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 2 брутто
+            workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 2 
 
-            //string time = workInput.Substring(0, workInput.IndexOf(" "));
             XMLtmp.Add("Time", workInput.Substring(0, workInput.IndexOf(" ")));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 3
 
-            //string brutto = workInput.Substring(0, workInput.IndexOf(" "));
-            XMLtmp.Add("Brutto", workInput.Substring(0, workInput.IndexOf(" ")));
+            XMLtmp.Add("Brutto", TonnsToKilos(workInput.Substring(0, workInput.IndexOf(" "))));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 4
 
-            //string platforma1 = workInput.Substring(0, workInput.IndexOf(" "));
-            XMLtmp.Add("Platform1", workInput.Substring(0, workInput.IndexOf(" ")));
+            XMLtmp.Add("Platform1", TonnsToKilos(workInput.Substring(0, workInput.IndexOf(" "))));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 5
 
-            //string platforma2 = workInput.Substring(0, workInput.IndexOf(" "));
-            XMLtmp.Add("Platform2", workInput.Substring(0, workInput.IndexOf(" ")));
+            XMLtmp.Add("Platform2", TonnsToKilos(workInput.Substring(0, workInput.IndexOf(" "))));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 6
 
-            //string pravBort1_2 = workInput.Substring(0, workInput.IndexOf(" "));
+            #region Правый борт (есть в ответе, но не требуется по спецификации), обрезаю
             //XMLtmp.Add("pravBort1_2", workInput.Substring(0, workInput.IndexOf(" ")));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 7 не требуется -> пропускаем
+            #endregion
 
-            //string levBort3_4 = workInput.Substring(0, workInput.IndexOf(" "));
+            #region  Левый борт (есть в ответе, но не требуется по спецификации), обрезаю
             //XMLtmp.Add("levBort3_4", workInput.Substring(0, workInput.IndexOf(" ")));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 8 не требуется -> пропускаем
+            #endregion
 
             string Pp = workInput.Substring(0, workInput.IndexOf(" "));
             XMLtmp.Add("ShiftPop", workInput.Substring(0, workInput.IndexOf(" ")));
@@ -230,10 +211,29 @@ namespace serialtoip
             XMLtmp.Add("ShiftPro", workInput.Substring(0, workInput.IndexOf(" ")));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 10
 
-            string delta = workInput.Trim();
+            string delta = workInput.Trim();                                                                                                // 11
             XMLtmp.Add("Delta", workInput);
 
             return XMLtmp;
+        }
+
+        // Перевожу тонны в киллограммы, возвращаю в строковом представлении.
+        private static string TonnsToKilos(string inputTonns) 
+        {
+            if (!string.IsNullOrEmpty(inputTonns)) 
+            {
+                double outputKilos = 0;
+                if (double.TryParse(inputTonns, out outputKilos))
+                {
+                    return (outputKilos * 1000).ToString();
+                }
+                throw new Exception("Calculation mass is incorrect. | " + inputTonns +" |");
+            }
+            else
+            {
+                throw new Exception("Mass value is incorrect.");
+            }
+            
         }
     }
 }
