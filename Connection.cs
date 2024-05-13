@@ -22,6 +22,7 @@ namespace serialtoip
         private CrossThreadComm.UpdateRXTX _updRxTx;
         public Socket socket;
         private Socket _moxaTC;
+        Socket socLoc = (Socket)null;
         private bool _isfree = true;
         private Dictionary<string, string> _d;
         private bool _keepOpen = true;
@@ -85,9 +86,9 @@ namespace serialtoip
             socket = soc;
             _moxaTC = moxaTC;
             _d = d;
-            SetConnInfoTraceCallback(conInfoCb);
             _updState = updState;
             _updRxTx = updRxTx;
+            SetConnInfoTraceCallback(conInfoCb);
 
             if (_updState != null)
                 _updState((object)this, CrossThreadComm.State.start);
@@ -98,13 +99,17 @@ namespace serialtoip
                 TraceLine("Trying to connect to client " + _d["moxaHost"] + ":" + _d["moxaPort"]);
                 try
                 {
+                    _moxaTC = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                     _moxaTC.Connect(_d["moxaHost"], int.Parse(_d["moxaPort"]));
                 }
                 catch (Exception ex)
                 {
                     TraceLine("CONNECT TO CLIENT - ERROR OCCURED:\r\n" + ex.ToString());
                     if (socket.Connected)
+                    {
+                        //socket.Shutdown(SocketShutdown.Both); // не тестировал
                         socket.Close();
+                    }
                     throw ex;
                 }
                 TraceLine("CONNECT TO CLIENT - OK");
@@ -191,6 +196,8 @@ namespace serialtoip
             if (_moxaTC.Connected)
             {
                 TraceLine("Closing the moxa connection " + _moxaTC.RemoteEndPoint.ToString());
+                _moxaTC.Shutdown(SocketShutdown.Both);
+                _moxaTC.Disconnect(true);
                 _moxaTC.Close();
             }
 

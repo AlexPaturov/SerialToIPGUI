@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO.Ports;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Windows.Forms;
@@ -71,7 +72,6 @@ namespace SerialToIpGUI
             
             try
             {
-                //MainForm.moxaTC = new TcpClient(this.dn["moxaHost"], int.Parse(this.dn["moxaPort"].Trim()));
                 MainForm.moxaTC = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 this.sm = new ServerMode();
                 this.sm.Run(this.dn, MainForm.moxaTC, MainForm._conInfoTrace, MainForm._updateState, MainForm._updRxTx);
@@ -206,9 +206,11 @@ namespace SerialToIpGUI
                     if (str != null)
                     {
                         this.listBoxInfoTrace.Items.Add((object)(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + str));
+                        logger.Debug((object)(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + str));
                         if (this.listBoxInfoTrace.Items.Count > 256)
                             this.listBoxInfoTrace.Items.RemoveAt(0);
                         this.listBoxInfoTrace.SelectedIndex = this.listBoxInfoTrace.Items.Count - 1;
+                        logger.Debug(this.listBoxInfoTrace.Items.Count - 1);
                     }
                     else
                     {
