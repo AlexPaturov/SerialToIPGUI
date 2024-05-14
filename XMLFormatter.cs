@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Xml;
 
@@ -178,7 +179,7 @@ namespace serialtoip
                 throw new Exception("Format of answer from device is incorrect." + input);
             }
 
-            XMLtmp.Add("Date", workInput.Substring(0, workInput.IndexOf(" ")));
+            XMLtmp.Add("Date", string.Format(CultureInfo.InvariantCulture, "{0:dd/MM/yyyy}", DateTime.Parse(workInput.Substring(0, workInput.IndexOf(" ")))));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 2 
 
             XMLtmp.Add("Time", workInput.Substring(0, workInput.IndexOf(" ")));
