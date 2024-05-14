@@ -138,7 +138,7 @@ namespace serialtoip
                     if (controllerCommand != null)                                              // команда корректна -> отправляем устройству
                     {
                         _moxaTC.Send(controllerCommand, controllerCommand.Length, SocketFlags.None);
-                        //Thread.Sleep(500);                                                      // подождём пока данные прийдут. На 200 - сыплет ошибки.
+                        Thread.Sleep(500);                                                      // подождём пока данные прийдут. На 200 - сыплет ошибки.
                         flag = true;                                                            // передача данных контроллеру была
                     }
                     else                                                                        // формирование для клиента сообщения об ошибке
