@@ -219,7 +219,12 @@ namespace SerialToIpGUI
         private void InitializeSerialToIPGui()
         {
             this.ConnInfoTrace((object)"GUI init");
-            this.tbMoxaHost.Text = this.dn["moxaHost"];
+            
+            if (Environment.MachineName == "ALEXPC")
+                this.tbMoxaHost.Text = this.dn["moxaHost"];     // на моей машине
+            else
+                this.tbMoxaHost.Text = this.dn["moxaHostDKZ"];  // на рабочей
+
             this.tbMoxaPort.Text = this.dn["moxaPort"];
             this.tbClientHost.Text = this.dn["clientHost"];
             this.tbClientPort.Text = this.dn["clientPort"];
@@ -233,6 +238,7 @@ namespace SerialToIpGUI
             MainForm._updateState = new CrossThreadComm.UpdateState(this.UpdateState);
             MainForm._updRxTx = new CrossThreadComm.UpdateRXTX(this.UpdateRxTx);
             this.dn.Add("moxaHost", "10.10.10.1");
+            this.dn.Add("moxaHostDKZ", "dkz-moxa-010");
             this.dn.Add("moxaPort", "4001");
             this.dn.Add("clientHost", "127.0.0.1");
             this.dn.Add("clientPort", "8888");
