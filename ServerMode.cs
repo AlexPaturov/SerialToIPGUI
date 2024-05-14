@@ -27,8 +27,8 @@ namespace serialtoip
             CrossThreadComm.UpdateState updState,
             CrossThreadComm.UpdateRXTX updRxTx)
         {
-            if (traceFunc != null)
-                traceFunc((object)"SOCKET SERVER MODE");
+            //if (traceFunc != null)
+            //    traceFunc((object)"SOCKET SERVER MODE");
             DateTime now = DateTime.Now;
             _run = true;
 
@@ -45,7 +45,7 @@ namespace serialtoip
 
                 if (!moxaTC.Connected && soc != null)
                 {
-                    traceFunc((object)"Tcp client connected");
+                    traceFunc((object)"ARM weighter connected");
                     this.conn = new Connection();
                     try
                     {
@@ -54,7 +54,7 @@ namespace serialtoip
                     }
                     catch (Exception ex)
                     {
-                        traceFunc((object)"IP-to-SERIAL connection initialization failed");
+                        traceFunc((object)"ARM to moxa connection initialization failed");
                         traceFunc((object)ex.Message);
                         this.conn = (Connection)null;
                     }

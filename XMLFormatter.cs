@@ -136,7 +136,7 @@ namespace serialtoip
             }
         }
 
-        // Получить ошибку в установленном спецификацией формате.
+        // Получаю стандартный Exception и код по спецификации, возвращаю ошибку в установленном спецификацией формате XML.
         public static byte[] GetError(Exception ex, int code) 
         {
             XmlDocument xmlDoc = new XmlDocument();                                                         

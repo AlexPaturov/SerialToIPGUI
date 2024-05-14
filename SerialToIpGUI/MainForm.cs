@@ -60,7 +60,7 @@ namespace SerialToIpGUI
         private void ServiceThread()
         {
             this._running = true;
-            this.ConnInfoTrace((object)("Service start " + this.dn["clientHost"] + " " + int.Parse(this.dn["clientPort"].Trim()).ToString()));
+            this.ConnInfoTrace((object)("ServiceThread start " + this.dn["clientHost"] + " " + int.Parse(this.dn["clientPort"].Trim()).ToString()));
             
             try
             {
@@ -71,12 +71,12 @@ namespace SerialToIpGUI
             catch (Exception ex)
             {
                 this._running = false;
-                this.ConnInfoTrace((object)"Mode start failed..");
+                this.ConnInfoTrace((object)"ServiceThread start failed..");
                 this.ConnInfoTrace((object)ex.Message);
                 this.ConnInfoTrace((object)ex.StackTrace);
             }
 
-            this.ConnInfoTrace((object)"Service stopped");
+            this.ConnInfoTrace((object)"ServiceThread stopped");
             this._running = false;
             this.sm = (ServerMode)null;
             this.thServiceThread = (Thread)null;
@@ -121,7 +121,7 @@ namespace SerialToIpGUI
         {
             if (this.sm != null)
             {
-                this.ConnInfoTrace((object)"Stop request set to Server Mode");
+                this.ConnInfoTrace((object)"Stop request ServiceThread");
                 this.sm.StopRequest();
             }
             this.sm = (ServerMode)null;
@@ -159,7 +159,7 @@ namespace SerialToIpGUI
                         break;
                     case CrossThreadComm.State.terminate:
                         this._connected = false;
-                        this.ConnInfoTrace((object)"UpdateState( ) -- service has finished");
+                        this.ConnInfoTrace((object)"UpdateState() -- ServiceThread has finished");
                         break;
                 }
             }
@@ -218,14 +218,11 @@ namespace SerialToIpGUI
 
         private void InitializeSerialToIPGui()
         {
-            this.ConnInfoTrace((object)"GUI init with a serial port scan.");
-
+            this.ConnInfoTrace((object)"GUI init");
             this.tbMoxaHost.Text = this.dn["moxaHost"];
             this.tbMoxaPort.Text = this.dn["moxaPort"];
             this.tbClientHost.Text = this.dn["clientHost"];
             this.tbClientPort.Text = this.dn["clientPort"];
-
-
             this.buttonStop.Enabled = false;
         }
 
@@ -245,7 +242,7 @@ namespace SerialToIpGUI
             toolTip.InitialDelay = 1000;
             toolTip.ReshowDelay = 500;
             toolTip.ShowAlways = true;
-            toolTip.SetToolTip((Control)this.buttonRefresh, "Refresh the serial port list");
+            toolTip.SetToolTip((Control)this.buttonRefresh, "Refresh the ... ");
             toolTip.SetToolTip((Control)this.buttonClearLog, "Clear the trace log");
             this.panel5.BackColor = Color.Gray;
             this.InitializeSerialToIPGui();
