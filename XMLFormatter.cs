@@ -179,12 +179,8 @@ namespace serialtoip
                 throw new Exception("Format of answer from device is incorrect." + input);
             }
 
-            DateTime myDate = DateTime.ParseExact(workInput.Substring(0, workInput.IndexOf(" ")).Trim(), "dd-MM-yyyy", CultureInfo.InvariantCulture);
-
-            string tmpDate = string.Format(CultureInfo.InvariantCulture, "{0:dd/MM/yyyy}", myDate);
-            XMLtmp.Add("Date", string.Format(CultureInfo.InvariantCulture, "{0:dd/MM/yyyy}", tmpDate));
-            
-            //XMLtmp.Add("Date", string.Format(CultureInfo.InvariantCulture, "{0:dd/MM/yyyy}", DateTime.Parse(workInput.Substring(0, workInput.IndexOf(" ")))));
+            XMLtmp.Add("Date", string.Format(CultureInfo.InvariantCulture, "{0:dd/MM/yyyy}", 
+                DateTime.ParseExact(workInput.Substring(0, workInput.IndexOf(" ")).Trim(), "dd-MM-yyyy", CultureInfo.InvariantCulture)));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 2 
 
             XMLtmp.Add("Time", workInput.Substring(0, workInput.IndexOf(" ")));
