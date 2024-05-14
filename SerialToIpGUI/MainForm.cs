@@ -3,7 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Globalization;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -218,6 +220,7 @@ namespace SerialToIpGUI
 
         private void InitializeSerialToIPGui()
         {
+            SetDefaultCulture();
             this.ConnInfoTrace((object)"GUI init");
             
             if (Environment.MachineName == "ALEXPC")
@@ -681,7 +684,7 @@ namespace SerialToIpGUI
             this.Controls.Add(this.label5);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Name = "MainForm";
-            this.Text = "Serial-To-IP";
+            this.Text = "ARM to moxa bidi";
             this.Activated += new System.EventHandler(this.MainFormActivated);
             this.Deactivate += new System.EventHandler(this.MainFormDeactivate);
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainFormFormClosing);
@@ -704,6 +707,28 @@ namespace SerialToIpGUI
         {
             this.labelRemoteHost.Enabled = true;
             this.tbClientHost.Enabled = true;
+        }
+
+        public static void SetDefaultCulture()
+        {
+            CultureInfo cultureInfo = CultureInfo.CreateSpecificCulture("en-US");
+            Thread.CurrentThread.CurrentCulture = cultureInfo;
+            Thread.CurrentThread.CurrentUICulture = cultureInfo;
+            CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+            CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
+
+            Type type = typeof(CultureInfo);
+            type.InvokeMember("s_userDefaultCulture",
+                                BindingFlags.SetField | BindingFlags.NonPublic | BindingFlags.Static,
+                                null,
+                                cultureInfo,
+                                new object[] { cultureInfo });
+
+            type.InvokeMember("s_userDefaultUICulture",
+                                BindingFlags.SetField | BindingFlags.NonPublic | BindingFlags.Static,
+                                null,
+                                cultureInfo,
+                                new object[] { cultureInfo });
         }
     }
 }
