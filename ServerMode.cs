@@ -49,7 +49,6 @@ namespace serialtoip
                     this.conn = new Connection();
                     try
                     {
-
                         this.conn.StartConnection(soc, d, moxaTC, traceFunc, updState, updRxTx);
                     }
                     catch (Exception ex)
