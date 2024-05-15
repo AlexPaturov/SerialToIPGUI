@@ -135,11 +135,28 @@ namespace serialtoip
                     ARMsocket.Receive(buffer, colByteClient, SocketFlags.None); 
                     
                     byte[] controllerCommand = DecodeClientRequestToControllerCommand(buffer, colByteClient); // Верну null если команда не корректная, иначе - команду для контроллера
-                    if (controllerCommand != null)                                              // команда корректна -> отправляем устройству
+                    if (controllerCommand != null)                                                          // команда корректна -> отправляем устройству
                     {
-                        _moxaTC.Send(controllerCommand, controllerCommand.Length, SocketFlags.None);
-                        Thread.Sleep(600);                                                      // подождём пока данные прийдут. На 200 - сыплет ошибки.
-                        flag = true;                                                            // передача данных контроллеру была
+                        try 
+                        { 
+                            _moxaTC.Send(controllerCommand, controllerCommand.Length, SocketFlags.None);
+                            Thread.Sleep(600);                                                              // подождём пока данные прийдут. На 200 - сыплет ошибки.
+                            flag = true;                                                                    // передача данных контроллеру была
+                        } 
+                        catch (SocketException ex) 
+                        {
+                            if (ex.SocketErrorCode == SocketError.TimedOut)
+                            {
+                                Exception exInner = new Exception("Прибор не ответил на запрос");           // Согласно спецификации.
+                                byte[] errorByteArr = XMLFormatter.GetError(exInner, 1);                    // Отформатировал ошибку в XML формат. 
+                                ARMsocket.Send(errorByteArr, errorByteArr.Length, SocketFlags.None);        // Отправляем в АРМ весов XML в виде byte[].
+                            }
+                            throw ex;
+                        }
+                        catch (Exception ex) 
+                        {
+                            throw ex;
+                        }
                     }
                     else                                                                        // формирование для клиента сообщения об ошибке
                     {
@@ -156,24 +173,40 @@ namespace serialtoip
                 {
                     if (_updRxTx != null)
                         _updRxTx((object)this, colByteFromMoxa, 0);
-                    
-                    //Thread.Sleep(800);
-                    _moxaTC.Receive(buffer, colByteFromMoxa, SocketFlags.None);
-                    
+
+                    try
+                    {
+                        _moxaTC.Receive(buffer, colByteFromMoxa, SocketFlags.None);
+                    }
+                    catch (SocketException ex)
+                    {
+                        if (ex.SocketErrorCode == SocketError.TimedOut)                                 // по таймауту - делаю "своё" исключение
+                        {
+                            Exception exInner = new Exception("Прибор не ответил на запрос");           // Согласно спецификации.
+                            byte[] errorByteArr = XMLFormatter.GetError(exInner, 1);                    // Отформатировал ошибку в XML формат. 
+                            ARMsocket.Send(errorByteArr, errorByteArr.Length, SocketFlags.None);        // Отправляем в АРМ весов XML в виде byte[].
+                        }
+                        throw ex;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex;
+                    }
+
                     #region only for show buffer data to textbox
-                    byte[] moxaArr = new byte[colByteFromMoxa];                  // установил размерность нового массива
-                    Buffer.BlockCopy(buffer, 0, moxaArr, 0, colByteFromMoxa);    // копирую данные в промежуточный массив для отображения
+                    byte[] moxaArr = new byte[colByteFromMoxa];                                         // установил размерность нового массива
+                    Buffer.BlockCopy(buffer, 0, moxaArr, 0, colByteFromMoxa);                           // копирую данные в промежуточный массив для отображения
                     TraceLine("moxa to client " + colByteFromMoxa.ToString() + "  " + Encoding.GetEncoding(1251).GetString(buffer) + "  " + Encoding.GetEncoding(1251).GetString(moxaArr));
                     #endregion
                     
                     byte[] btArr = null;
                     try
                     {
-                        btArr = XMLFormatter.getStatic(moxaArr);                // Если возникла ошибка при разборе сообщения - кидаю исключение.
+                        btArr = XMLFormatter.getStatic(moxaArr);                                        // Если возникла ошибка при разборе сообщения - кидаю исключение.
                     } 
                     catch (Exception ex) 
                     {
-                        btArr = XMLFormatter.GetError(ex, 100);                 // Отформатировал ошибку в XML формат, перевёл в byte[]
+                        btArr = XMLFormatter.GetError(ex, 100);                                         // Отформатировал ошибку в XML формат, перевёл в byte[]
                     }
 
                     ARMsocket.Send(btArr, btArr.Length, SocketFlags.None);
@@ -220,11 +253,13 @@ namespace serialtoip
             switch (Encoding.GetEncoding(1251).GetString(clientComandArr))
             {
                 case "<Request method='set_mode' parameter='Static'/>":     // 1)
-                    controllerCommand = "" + "\r\n";
+                    //controllerCommand = "" + "\r\n";
+                    controllerCommand = null;
                     break;
 
                 case "<Request method='checksum'/>":                        // 2)
-                    controllerCommand = "" + "\r\n";
+                    //controllerCommand = "" + "\r\n";
+                    controllerCommand = null;
                     break;
 
                 case "<Request method='get_static'/>":                      // 3) получить вес, взвешивание в статике
@@ -232,15 +267,18 @@ namespace serialtoip
                     break;
 
                 case "<Request method='set_zero' parameter='0'/>":          // 4)
-                    controllerCommand = "" + "\r\n";
+                    //controllerCommand = "" + "\r\n";
+                    controllerCommand = null;
                     break;
 
                 case "<Request method='restart_weight'/>":                  // 5)
-                    controllerCommand = "" + "\r\n";
+                    //controllerCommand = "" + "\r\n";
+                    controllerCommand = null;
                     break;
 
                 default:                                                    // 6) Команда полученная от клиента - не распознана.
-                    controllerCommand = "" + "\r\n";
+                    //controllerCommand = "" + "\r\n";
+                    controllerCommand = null;
                     break;
             }
 
