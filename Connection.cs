@@ -247,36 +247,36 @@ namespace serialtoip
         private byte[] DecodeClientRequestToControllerCommand(byte[] cliBuffer, int dataLength)
         {
             string controllerCommand = string.Empty;
-            byte[] clientComandArr = new byte[dataLength];                     // установил размерность массива для команды клиента
-            Buffer.BlockCopy(cliBuffer, 0, clientComandArr, 0, dataLength);    // копирую данные в промежуточный массив 
+            byte[] clientComandArr = new byte[dataLength];                      // установил размерность массива для команды клиента
+            Buffer.BlockCopy(cliBuffer, 0, clientComandArr, 0, dataLength);     // копирую данные в промежуточный массив 
             
             switch (Encoding.GetEncoding(1251).GetString(clientComandArr))
             {
-                case "<Request method='set_mode' parameter='Static'/>":     // 1)
+                case "<Request method='set_mode' parameter='Static'/>":         // 1)
                     //controllerCommand = "" + "\r\n";
                     controllerCommand = null;
                     break;
 
-                case "<Request method='checksum'/>":                        // 2)
+                case "<Request method='checksum'/>":                            // 2)
                     //controllerCommand = "" + "\r\n";
                     controllerCommand = null;
                     break;
 
-                case "<Request method='get_static'/>":                      // 3) получить вес, взвешивание в статике
+                case "<Request method='get_static'/>":                          // 3) получить вес, взвешивание в статике
                     controllerCommand = "F#1" + "\r\n";
                     break;
 
-                case "<Request method='set_zero' parameter='0'/>":          // 4)
+                case "<Request method='set_zero' parameter='0'/>":              // 4)
                     //controllerCommand = "" + "\r\n";
                     controllerCommand = null;
                     break;
 
-                case "<Request method='restart_weight'/>":                  // 5)
+                case "<Request method='restart_weight'/>":                      // 5)
                     //controllerCommand = "" + "\r\n";
                     controllerCommand = null;
                     break;
 
-                default:                                                    // 6) Команда полученная от клиента - не распознана.
+                default:                                                        // 6) Команда полученная от клиента - не распознана.
                     //controllerCommand = "" + "\r\n";
                     controllerCommand = null;
                     break;
