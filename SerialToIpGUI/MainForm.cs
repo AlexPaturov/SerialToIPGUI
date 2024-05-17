@@ -253,7 +253,7 @@ namespace SerialToIpGUI
         {
             this.ConnInfoTrace((object)"GUI init with a serial port scan.");
             this.listBoxBaudrate.DataSource = (object)this._items;
-            this.listBoxBaudrate.SelectedIndex = 3;
+            this.listBoxBaudrate.SelectedIndex = 7;      // устанавливаем частоту 115200 
             this.listBoxSerialPorts.Items.Clear();
             string[] portNames = SerialPort.GetPortNames();
             if (portNames.Length == 0)
@@ -268,8 +268,8 @@ namespace SerialToIpGUI
                 this.listBoxSerialPorts.ForeColor = Color.Black;
                 foreach (object obj in portNames)
                     this.listBoxSerialPorts.Items.Add(obj);
-                if (this.listBoxSerialPorts.Items.Count >= 7)
-                    this.listBoxBaudrate.SelectedIndex = 7;
+                if (this.listBoxSerialPorts.Items.Count >= 2)
+                    this.listBoxSerialPorts.SelectedIndex = 2;   // устанавливаем номер COM порта - 3
             }
             this.textBoxSocketPort.Text = this.dn["socketport"];
             this.radioButtonServer.Checked = true;
@@ -286,7 +286,7 @@ namespace SerialToIpGUI
             MainForm._updRxTx = new CrossThreadComm.UpdateRXTX(this.UpdateRxTx);
             this.dn.Add("serialport", "COM1");
             this.dn.Add("baudrate", "9600");
-            this.dn.Add("socketport", "8888");
+            this.dn.Add("socketport", "4001");
             this.dn.Add("remotehost", (string)null);
             this.dn.Add("socksend", (string)null);
             this.dn.Add("sockfilesend", (string)null);
