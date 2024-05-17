@@ -153,10 +153,10 @@ namespace serialtoip
                             }
                             throw ex;
                         }
-                        catch (Exception ex) 
-                        {
-                            throw ex;
-                        }
+                        //catch (Exception ex) 
+                        //{
+                        //    throw ex;
+                        //}
                     }
                     else                                                                        // формирование для клиента сообщения об ошибке
                     {
@@ -283,7 +283,7 @@ namespace serialtoip
             }
 
             // Если команда распознана - перекодирую в байтовый массив и возвращаю, иначе верну null.
-            if (controllerCommand.Length > 0)
+            if (!string.IsNullOrEmpty(controllerCommand) && controllerCommand.Length > 0)
             {
                 return Encoding.GetEncoding(1251).GetBytes(controllerCommand);
             }
