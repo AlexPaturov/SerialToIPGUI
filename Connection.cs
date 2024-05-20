@@ -99,7 +99,7 @@ namespace serialtoip
                     TraceLine("Error connect to weighter ARM:" + "\r\n" + ex.ToString());
                     if (ARMsocket.Connected)
                     {
-                        ARMsocket.Shutdown(SocketShutdown.Both); // не тестировал
+                        //ARMsocket.Shutdown(SocketShutdown.Both); // не тестировал
                         ARMsocket.Close();
                     }
                     throw ex;
@@ -139,6 +139,7 @@ namespace serialtoip
                     {
                         try 
                         { 
+                            throw new SocketException((int) SocketError.TimedOut);
                             _moxaTC.Send(controllerCommand, controllerCommand.Length, SocketFlags.None);
                             Thread.Sleep(600);                                                              // подождём пока данные прийдут. На 200 - сыплет ошибки.
                             flag = true;                                                                    // передача данных контроллеру была
@@ -151,14 +152,11 @@ namespace serialtoip
                                 byte[] errorByteArr = XMLFormatter.GetError(exInner, 1);                    // Отформатировал ошибку в XML формат. 
                                 ARMsocket.Send(errorByteArr, errorByteArr.Length, SocketFlags.None);        // Отправляем в АРМ весов XML в виде byte[].
                             }
-                            throw ex;
+                            throw; // пробрасываю исключение дальше
                         }
-                        //catch (Exception ex) 
-                        //{
-                        //    throw ex;
-                        //}
+                        
                     }
-                    else                                                                        // формирование для клиента сообщения об ошибке
+                    else                                                                        // формирование для клиента сообщения об ошибке в его запросе.
                     {
                         Exception ex = new Exception("Ошибка обработки запроса");               // Согласно спецификации.
                         byte[] errorByteArr = XMLFormatter.GetError(ex, 2);                     // Отформатировал ошибку в XML формат. 
@@ -231,12 +229,12 @@ namespace serialtoip
             if (_moxaTC.Connected)
             {
                 TraceLine("Closing the moxa connection " + _moxaTC.RemoteEndPoint.ToString());  // подключение к АРМ весов
-                _moxaTC.Shutdown(SocketShutdown.Both);
-                _moxaTC.Disconnect(true);
+                //_moxaTC.Shutdown(SocketShutdown.Both);
+                //_moxaTC.Disconnect(true);
                 _moxaTC.Close();
             }
 
-            ARMsocket.Shutdown(SocketShutdown.Both);
+            //ARMsocket.Shutdown(SocketShutdown.Both);
             ARMsocket.Close();
             _isfree = true;
         }
