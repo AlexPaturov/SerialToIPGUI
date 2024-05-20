@@ -121,6 +121,14 @@ namespace serialtoip
                         ch3_ShiftPro.InnerText = preparedAnswer["ShiftPro"];
                         ch2_StaticData.AppendChild(ch3_ShiftPro);
 
+                        XmlElement ch3_pravBort1_2 = xmlDoc.CreateElement("PravBort1_2");
+                        ch3_pravBort1_2.InnerText = preparedAnswer["PravBort1_2"];
+                        ch2_StaticData.AppendChild(ch3_pravBort1_2);
+
+                        XmlElement ch3_levBort3_4 = xmlDoc.CreateElement("LevBort3_4");
+                        ch3_levBort3_4.InnerText = preparedAnswer["LevBort3_4"];
+                        ch2_StaticData.AppendChild(ch3_levBort3_4);
+
                         XmlElement ch3_Delta = xmlDoc.CreateElement("Delta");
                         ch3_Delta.InnerText = preparedAnswer["Delta"];
                         ch2_StaticData.AppendChild(ch3_Delta);
@@ -195,21 +203,15 @@ namespace serialtoip
             XMLtmp.Add("Platform2", TonnsToKilos(workInput.Substring(0, workInput.IndexOf(" "))));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 6
 
-            #region Правый борт (есть в ответе, но не требуется по спецификации), обрезаю
-            //XMLtmp.Add("pravBort1_2", workInput.Substring(0, workInput.IndexOf(" ")));
-            workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 7 не требуется -> пропускаем
-            #endregion
+            XMLtmp.Add("PravBort1_2", TonnsToKilos(workInput.Substring(0, workInput.IndexOf(" "))));
+            workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 7 
 
-            #region  Левый борт (есть в ответе, но не требуется по спецификации), обрезаю
-            //XMLtmp.Add("levBort3_4", workInput.Substring(0, workInput.IndexOf(" ")));
-            workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 8 не требуется -> пропускаем
-            #endregion
+            XMLtmp.Add("LevBort3_4", TonnsToKilos(workInput.Substring(0, workInput.IndexOf(" "))));
+            workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 8 
 
-            string Pp = workInput.Substring(0, workInput.IndexOf(" "));
             XMLtmp.Add("ShiftPop", workInput.Substring(0, workInput.IndexOf(" ")));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 9
 
-            string Pr = workInput.Substring(0, workInput.IndexOf(" "));
             XMLtmp.Add("ShiftPro", workInput.Substring(0, workInput.IndexOf(" ")));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 10
 
