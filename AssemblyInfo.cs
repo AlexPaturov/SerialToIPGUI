@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyProduct("SerialToIpGUI")]
-[assembly: AssemblyTitle("SerialToIpGUI")]
+[assembly: AssemblyProduct("drvVesy10")]
+[assembly: AssemblyTitle("drvVesy10")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyCopyright("Licensed under GPL")]
 [assembly: AssemblyTrademark("")]
