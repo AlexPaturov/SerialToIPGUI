@@ -69,6 +69,7 @@ namespace SerialToIpGUI
                 MainForm.moxaTC = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 this.sm = new ServerMode();
                 this.sm.Run(this.dn, MainForm.moxaTC, MainForm._conInfoTrace, MainForm._updateState, MainForm._updRxTx);
+                // 
             }
             catch (Exception ex)
             {
@@ -200,11 +201,11 @@ namespace SerialToIpGUI
                     if (str != null)
                     {
                         this.listBoxInfoTrace.Items.Add((object)(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + str));
-                        logger.Debug((object)(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + str));
+                        //logger.Debug((object)(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + str));
                         if (this.listBoxInfoTrace.Items.Count > 256)
                             this.listBoxInfoTrace.Items.RemoveAt(0);
                         this.listBoxInfoTrace.SelectedIndex = this.listBoxInfoTrace.Items.Count - 1;
-                        logger.Debug(this.listBoxInfoTrace.Items.Count - 1);
+                        //logger.Debug(this.listBoxInfoTrace.Items.Count - 1);
                     }
                     else
                     {
@@ -262,7 +263,7 @@ namespace SerialToIpGUI
             this._shuttingdown = true;
             this._is_shown = false;
             this.HandleStop();
-            logger.Info("Close " + System.Diagnostics.Process.GetCurrentProcess().ProcessName);
+            logger.Info("Close " + System.Diagnostics.Process.GetCurrentProcess().ProcessName);  // спецификация - дата, время запуска драйвера
         }
 
         private void ButtonRefreshClick(object sender, EventArgs e) => this.InitializeSerialToIPGui();
@@ -319,7 +320,7 @@ namespace SerialToIpGUI
         private void MainFormLoad(object sender, EventArgs e)
         { 
             this._is_shown = true;
-            logger.Info("Start " + System.Diagnostics.Process.GetCurrentProcess().ProcessName);
+            logger.Info("Start " + System.Diagnostics.Process.GetCurrentProcess().ProcessName); // спецификация - дата, время запуска драйвера
         }
 
         private void ButtonMinimizeClick(object sender, EventArgs e) => this.WindowState = FormWindowState.Minimized;

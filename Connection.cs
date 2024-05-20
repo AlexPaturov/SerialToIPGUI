@@ -16,6 +16,7 @@ namespace serialtoip
         private bool _isfree = true;
         private Dictionary<string, string> _d;
         private bool _keepOpen = true;
+        private static readonly log4net.ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public Connection()
         {
@@ -97,14 +98,18 @@ namespace serialtoip
                 catch (Exception ex)
                 {
                     TraceLine("Error connect to weighter ARM:" + "\r\n" + ex.ToString());
+                    logger.Error("Error connect to weighter ARM:" + "\r\n" + ex.StackTrace + " " + ex.ToString());
+                    
                     if (ARMsocket.Connected)
                     {
-                        //ARMsocket.Shutdown(SocketShutdown.Both); // не тестировал
+                        // протестировать throw exception 20.05.2024
+                        // ARMsocket.Shutdown(SocketShutdown.Both); // не тестировал
                         ARMsocket.Close();
                     }
-                    throw ex;
+                    // throw ex;
                 }
                 TraceLine("Connect to weighter ARM success. " + _d["moxaHost"] + ":" + _d["moxaPort"]); // подключение к АРМ весов - спецификация
+                logger.Info("Connect to weighter ARM success. " + _d["moxaHost"] + ":" + _d["moxaPort"]);
             }
             new Thread(new ThreadStart(Tranceiver)).Start();
             return true;
@@ -124,23 +129,27 @@ namespace serialtoip
             while (_keepOpen)
             {
                 bool flag = false; // флаг передачи данных клиент <-> контроллер
-                int colByteClient = LimitTo(ARMsocket.Available, 8192);
+                int colByteARM = LimitTo(ARMsocket.Available, 8192);
                 
                 // ------------------------------ от клиента пришёл запрос begin -----------------------------------------------------------------   
-                if (colByteClient > 0) // 
+                if (colByteARM > 0) // 
                 {
                     if (_updRxTx != null)
-                        _updRxTx((object)this, 0, colByteClient);
+                        _updRxTx((object)this, 0, colByteARM);
                     
-                    ARMsocket.Receive(buffer, colByteClient, SocketFlags.None); 
-                    
-                    byte[] controllerCommand = DecodeClientRequestToControllerCommand(buffer, colByteClient); // Верну null если команда не корректная, иначе - команду для контроллера
+                    ARMsocket.Receive(buffer, colByteARM, SocketFlags.None);
+                    byte[] ARMbyteArr = new byte[colByteARM];                                               // установил размерность нового массива
+                    Buffer.BlockCopy(buffer, 0, ARMbyteArr, 0, colByteARM);
+                    logger.Info("ARM query string: " + Encoding.GetEncoding(1251).GetString(ARMbyteArr));   // строка запроса прикладного ПО драйверу
+
+                    byte[] controllerCommand = DecodeClientRequestToControllerCommand(buffer, colByteARM);  // Верну null если команда не корректная, иначе - команду для контроллера
                     if (controllerCommand != null)                                                          // команда корректна -> отправляем устройству
                     {
                         try 
                         { 
-                            throw new SocketException((int) SocketError.TimedOut);
-                            _moxaTC.Send(controllerCommand, controllerCommand.Length, SocketFlags.None);
+                            //throw new SocketException((int) SocketError.TimedOut);
+                            _moxaTC.Send(controllerCommand, controllerCommand.Length, SocketFlags.None);    // запрос драйвера контроллеру
+                            logger.Info(Encoding.GetEncoding(1251).GetString(controllerCommand));           // команда контроллеру
                             Thread.Sleep(600);                                                              // подождём пока данные прийдут. На 200 - сыплет ошибки.
                             flag = true;                                                                    // передача данных контроллеру была
                         } 
@@ -148,11 +157,12 @@ namespace serialtoip
                         {
                             if (ex.SocketErrorCode == SocketError.TimedOut)
                             {
-                                Exception exInner = new Exception("Прибор не ответил на запрос");           // Согласно спецификации.
+                                Exception exInner = new Exception("Прибор не ответил на запрос");           // Согласно спецификации - ловить таймаут
                                 byte[] errorByteArr = XMLFormatter.GetError(exInner, 1);                    // Отформатировал ошибку в XML формат. 
                                 ARMsocket.Send(errorByteArr, errorByteArr.Length, SocketFlags.None);        // Отправляем в АРМ весов XML в виде byte[].
                             }
-                            throw; // пробрасываю исключение дальше
+                            TraceLine(ex.StackTrace + " " + ex.Message);
+                            logger.Error(ex.StackTrace + " " + ex.Message);
                         }
                         
                     }
@@ -161,6 +171,7 @@ namespace serialtoip
                         Exception ex = new Exception("Ошибка обработки запроса");               // Согласно спецификации.
                         byte[] errorByteArr = XMLFormatter.GetError(ex, 2);                     // Отформатировал ошибку в XML формат. 
                         ARMsocket.Send(errorByteArr, errorByteArr.Length, SocketFlags.None);    // Отправляем в АРМ весов XML в виде byte[].
+                        logger.Error(Encoding.GetEncoding(1251).GetString(errorByteArr));       // пишу ответ для арма весов.
                     }
                 }
                 // ------------------------------ от клиента пришёл запрос end --------------------------------------------------------------
@@ -178,25 +189,23 @@ namespace serialtoip
                     }
                     catch (SocketException ex)
                     {
+                        logger.Error(ex.StackTrace + " " + ex.Message);
+
                         if (ex.SocketErrorCode == SocketError.TimedOut)                                 // по таймауту - делаю "своё" исключение
                         {
                             Exception exInner = new Exception("Прибор не ответил на запрос");           // Согласно спецификации.
                             byte[] errorByteArr = XMLFormatter.GetError(exInner, 1);                    // Отформатировал ошибку в XML формат. 
                             ARMsocket.Send(errorByteArr, errorByteArr.Length, SocketFlags.None);        // Отправляем в АРМ весов XML в виде byte[].
                         }
-                        throw ex;
-                    }
-                    catch (Exception ex)
-                    {
-                        throw ex;
-                    }
+                    }    
 
                     #region only for show buffer data to textbox
                     byte[] moxaArr = new byte[colByteFromMoxa];                                         // установил размерность нового массива
                     Buffer.BlockCopy(buffer, 0, moxaArr, 0, colByteFromMoxa);                           // копирую данные в промежуточный массив для отображения
                     TraceLine("moxa to client " + colByteFromMoxa.ToString() + "  " + Encoding.GetEncoding(1251).GetString(buffer) + "  " + Encoding.GetEncoding(1251).GetString(moxaArr));
+                    logger.Info(Encoding.GetEncoding(1251).GetString(moxaArr)); // ответ драйвера прикладному ПО
                     #endregion
-                    
+
                     byte[] btArr = null;
                     try
                     {
@@ -208,6 +217,7 @@ namespace serialtoip
                     }
 
                     ARMsocket.Send(btArr, btArr.Length, SocketFlags.None);
+                    
                     flag = true;
                 }
                 // ------------------------------ от моксы пришёл ответ ---------------------------------------------------------------------
@@ -224,17 +234,19 @@ namespace serialtoip
             
             if (_updState != null)
                 _updState((object)this, CrossThreadComm.State.disconnect);
-            TraceLine("Client disconnected from " + ARMsocket.RemoteEndPoint.ToString());
+            //TraceLine("Client disconnected from " + ARMsocket.RemoteEndPoint.ToString());
             
             if (_moxaTC.Connected)
             {
-                TraceLine("Closing the moxa connection " + _moxaTC.RemoteEndPoint.ToString());  // подключение к АРМ весов
+                TraceLine("Connect to controller is closed " + _moxaTC.RemoteEndPoint.ToString());  // отключение от контроллера
+                logger.Info("Connect to controller is closed " + _moxaTC.RemoteEndPoint.ToString());
                 //_moxaTC.Shutdown(SocketShutdown.Both);
                 //_moxaTC.Disconnect(true);
                 _moxaTC.Close();
             }
 
             //ARMsocket.Shutdown(SocketShutdown.Both);
+            logger.Info("Connect to weighter ARM is closed " + ARMsocket.RemoteEndPoint.ToString()); // отключение от ARM весов
             ARMsocket.Close();
             _isfree = true;
         }
@@ -251,12 +263,10 @@ namespace serialtoip
             switch (Encoding.GetEncoding(1251).GetString(clientComandArr))
             {
                 case "<Request method='set_mode' parameter='Static'/>":     // 1)
-                    //controllerCommand = "" + "\r\n";
                     controllerCommand = null;
                     break;
 
                 case "<Request method='checksum'/>":                        // 2)
-                    //controllerCommand = "" + "\r\n";
                     controllerCommand = null;
                     break;
 
@@ -265,17 +275,14 @@ namespace serialtoip
                     break;
 
                 case "<Request method='set_zero' parameter='0'/>":          // 4)
-                    //controllerCommand = "" + "\r\n";
                     controllerCommand = null;
                     break;
 
                 case "<Request method='restart_weight'/>":                  // 5)
-                    //controllerCommand = "" + "\r\n";
                     controllerCommand = null;
                     break;
 
                 default:                                                    // 6) Команда полученная от клиента - не распознана.
-                    //controllerCommand = "" + "\r\n";
                     controllerCommand = null;
                     break;
             }
