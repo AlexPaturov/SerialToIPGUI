@@ -9,7 +9,9 @@ namespace serialtoip
     public class ServerMode
     {
         private volatile bool _run = true;
+        private Socket socket = null;   
         private Connection conn;
+        private static readonly log4net.ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public int Run(
             Dictionary<string, string> d,
@@ -32,46 +34,55 @@ namespace serialtoip
             DateTime now = DateTime.Now;
             _run = true;
 
-            Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             socket.Bind((EndPoint)new IPEndPoint(IPAddress.Any, int.Parse(d["clientPort"].Trim())));
             socket.Listen(1);
             socket.ReceiveTimeout = 10;
 
             while (_run)
             {
-                Socket soc = (Socket)null;
+                Socket soc = null;
                 if (!moxaTC.Connected && socket.Poll(1000, SelectMode.SelectRead))
                     soc = socket.Accept();
 
                 if (!moxaTC.Connected && soc != null)
                 {
-                    traceFunc((object)"ARM weighter connected");
-                    this.conn = new Connection();
+                    traceFunc("ARM weighter connected");
+                    conn = new Connection();
                     try
                     {
-                        this.conn.StartConnection(soc, d, moxaTC, traceFunc, updState, updRxTx);
+                        conn.StartConnection(soc, d, moxaTC, traceFunc, updState, updRxTx);
                     }
                     catch (Exception ex)
                     {
-                        traceFunc((object)"ARM to moxa connection initialization failed");
-                        traceFunc((object)ex.Message);
-                        this.conn = (Connection)null;
+                        traceFunc("ARM to moxa connection initialization failed");
+                        traceFunc(ex.Message);
+                        logger.Error(ex);
+                        conn = null;
                     }
                 }
                 else
                 {
                     if (DateTime.Now.Subtract(now).TotalSeconds > 10.0)
                     {
-                        traceFunc((object)"Server active and idle");
+                        traceFunc("Server active and idle");
+                        logger.Info("Server active and idle");
                         now = DateTime.Now;
                     }
                     Thread.Sleep(1);
                 }
             }
 
-            traceFunc((object)"Server shutting down");
-            socket.Close();
-            this.conn = (Connection)null;
+            traceFunc("Server shutting down");
+            
+
+            //socket.Shutdown(SocketShutdown.Both);
+            //socket.Disconnect(true);
+            //socket.Close();
+            socket = null;
+            
+            conn = null;
+
             if (updState != null)
                 updState((object)this, CrossThreadComm.State.terminate);
             return 0;
@@ -79,9 +90,20 @@ namespace serialtoip
 
         public void StopRequest()
         {
-            if (this.conn != null)
-                this.conn.StopRequest();
-            this._run = false;
+            if (conn != null)
+                conn.StopRequest();
+            _run = false;
+            
+            if (socket != null)
+            {
+                if (socket.Connected) 
+                {
+                    socket.Disconnect(true);
+                    logger.Info("Server shutting down " + socket.RemoteEndPoint.ToString());
+                }
+                socket.Close();
+            }
+            socket = null;
         }
     }
 }

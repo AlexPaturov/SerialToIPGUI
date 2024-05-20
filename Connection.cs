@@ -12,7 +12,7 @@ namespace serialtoip
         private CrossThreadComm.UpdateState _updState;
         private CrossThreadComm.UpdateRXTX _updRxTx;
         public Socket ARMsocket;
-        private Socket _moxaTC;
+        public Socket _moxaTC;
         private bool _isfree = true;
         private Dictionary<string, string> _d;
         private bool _keepOpen = true;
@@ -54,7 +54,10 @@ namespace serialtoip
             _conInfoCallback((object)s);
         }
 
-        public void StopRequest() => _keepOpen = false;
+        public void StopRequest()
+        {
+            _keepOpen = false;
+        }
 
         public bool StartConnection(
           Socket soc,
@@ -98,7 +101,7 @@ namespace serialtoip
                 catch (Exception ex)
                 {
                     TraceLine("Error connect to weighter ARM:" + "\r\n" + ex.ToString());
-                    logger.Error("Error connect to weighter ARM:" + "\r\n" + ex.StackTrace + " " + ex.ToString());
+                    logger.Error(ex);
                     
                     if (ARMsocket.Connected)
                     {
@@ -128,10 +131,10 @@ namespace serialtoip
             
             while (_keepOpen)
             {
-                bool flag = false; // флаг передачи данных клиент <-> контроллер
-                int colByteARM = LimitTo(ARMsocket.Available, 8192);
+                bool transferOccured = false; // флаг свершения передачи данных клиент <-> контроллер
                 
                 // ------------------------------ от клиента пришёл запрос begin -----------------------------------------------------------------   
+                int colByteARM = LimitTo(ARMsocket.Available, 8192);
                 if (colByteARM > 0) // 
                 {
                     if (_updRxTx != null)
@@ -147,11 +150,10 @@ namespace serialtoip
                     {
                         try 
                         { 
-                            //throw new SocketException((int) SocketError.TimedOut);
                             _moxaTC.Send(controllerCommand, controllerCommand.Length, SocketFlags.None);    // запрос драйвера контроллеру
                             logger.Info(Encoding.GetEncoding(1251).GetString(controllerCommand));           // команда контроллеру
                             Thread.Sleep(600);                                                              // подождём пока данные прийдут. На 200 - сыплет ошибки.
-                            flag = true;                                                                    // передача данных контроллеру была
+                            transferOccured = true;                                                                    // передача данных контроллеру была
                         } 
                         catch (SocketException ex) 
                         {
@@ -162,7 +164,7 @@ namespace serialtoip
                                 ARMsocket.Send(errorByteArr, errorByteArr.Length, SocketFlags.None);        // Отправляем в АРМ весов XML в виде byte[].
                             }
                             TraceLine(ex.StackTrace + " " + ex.Message);
-                            logger.Error(ex.StackTrace + " " + ex.Message);
+                            logger.Error(ex);
                         }
                         
                     }
@@ -176,7 +178,7 @@ namespace serialtoip
                 }
                 // ------------------------------ от клиента пришёл запрос end --------------------------------------------------------------
 
-                // ------------------------------ от моксы пришёл ответ --------------------------------------------------------------------- 
+                // ------------------------------ от моксы пришёл ответ начало --------------------------------------------------------------------- 
                 int colByteFromMoxa = LimitTo(_moxaTC.Available, 8192);
                 if (colByteFromMoxa > 0)
                 {
@@ -189,7 +191,7 @@ namespace serialtoip
                     }
                     catch (SocketException ex)
                     {
-                        logger.Error(ex.StackTrace + " " + ex.Message);
+                        logger.Error(ex);
 
                         if (ex.SocketErrorCode == SocketError.TimedOut)                                 // по таймауту - делаю "своё" исключение
                         {
@@ -218,22 +220,22 @@ namespace serialtoip
 
                     ARMsocket.Send(btArr, btArr.Length, SocketFlags.None);
                     
-                    flag = true;
+                    transferOccured = true;
                 }
-                // ------------------------------ от моксы пришёл ответ ---------------------------------------------------------------------
+                // ------------------------------ от моксы пришёл ответ окончание ---------------------------------------------------------------------
 
                 if (ARMsocket.Poll(3000, SelectMode.SelectRead) & ARMsocket.Available == 0)
                 {
-                    TraceLine("Lost connection to " + ARMsocket.RemoteEndPoint.ToString());
+                    TraceLine("Lost connection to weighter ARM " + ARMsocket.RemoteEndPoint.ToString());
                     _keepOpen = false;
                 }
 
-                if (!flag)
+                if (!transferOccured)
                     Thread.Sleep(1);
             }
             
             if (_updState != null)
-                _updState((object)this, CrossThreadComm.State.disconnect);
+                _updState(this, CrossThreadComm.State.disconnect);
             //TraceLine("Client disconnected from " + ARMsocket.RemoteEndPoint.ToString());
             
             if (_moxaTC.Connected)

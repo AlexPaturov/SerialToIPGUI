@@ -19,16 +19,16 @@ namespace SerialToIpGUI
         private int _DiagSerportRx;
         private int _DiagSerportTx;
         private static object lck = new object();
-        private static Socket moxaTC = (Socket)null;
+        Socket moxaTC = null;
         protected object _traceListBoxLock = new object();
         private Dictionary<string, string> dn = new Dictionary<string, string>();
         private List<string> _items = new List<string>();
-        private ServerMode sm;
-        private bool _running;
-        private bool _shuttingdown;
-        protected Thread thServiceThread;
-        protected bool _connected;
-        protected bool _is_shown;
+        ServerMode sm = null;
+        private bool _running = false;
+        private bool _shuttingdown = false;
+        protected Thread thServiceThread = null;
+        protected bool _connected = false;
+        protected bool _is_shown = false;
         private bool drag;
         private Point start_point = new Point(0, 0);
         private bool draggable = true;
@@ -61,28 +61,30 @@ namespace SerialToIpGUI
 
         private void ServiceThread()
         {
-            this._running = true;
-            this.ConnInfoTrace((object)("ServiceThread start " + this.dn["clientHost"] + " " + int.Parse(this.dn["clientPort"].Trim()).ToString()));
+            _running = true;
+            ConnInfoTrace((object)("ServiceThread start " + this.dn["clientHost"] + " " + int.Parse(this.dn["clientPort"].Trim()).ToString()));
             
             try
             {
-                MainForm.moxaTC = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                this.sm = new ServerMode();
-                this.sm.Run(this.dn, MainForm.moxaTC, MainForm._conInfoTrace, MainForm._updateState, MainForm._updRxTx);
-                // 
+                moxaTC = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                sm = new ServerMode();
+                sm.Run(dn, moxaTC, MainForm._conInfoTrace, MainForm._updateState, MainForm._updRxTx);
+                 
             }
             catch (Exception ex)
             {
-                this._running = false;
-                this.ConnInfoTrace((object)"ServiceThread start failed..");
-                this.ConnInfoTrace((object)ex.Message);
-                this.ConnInfoTrace((object)ex.StackTrace);
+                _running = false;
+                ConnInfoTrace("ServiceThread start failed..");
+                ConnInfoTrace(ex.Message);
+                ConnInfoTrace(ex.StackTrace);
+                logger.Error(ex);
             }
 
-            this.ConnInfoTrace((object)"ServiceThread stopped");
-            this._running = false;
-            this.sm = (ServerMode)null;
-            this.thServiceThread = (Thread)null;
+            ConnInfoTrace("ServiceThread stopped");
+            _running = false;
+            sm = null;
+            moxaTC = null;
+            thServiceThread = null;
         }
 
         private void ButtonStartClick(object sender, EventArgs e)
@@ -101,9 +103,9 @@ namespace SerialToIpGUI
             this.dn["clientPort"]       = this.tbClientPort.Text.Trim();
             #endregion
 
-            this.thServiceThread = new Thread(new ThreadStart(this.ServiceThread));
-            this._running = true;
-            this.thServiceThread.Start();
+            thServiceThread = new Thread(ServiceThread);
+            _running = true;
+            thServiceThread.Start();
             Thread.Sleep(100);
             
             if (!this._running)
@@ -120,14 +122,20 @@ namespace SerialToIpGUI
 
         }
 
+        private void ButtonStopClick(object sender, EventArgs e) 
+        {
+            HandleStop();
+        }
+
         private void HandleStop()
         {
-            if (this.sm != null)
+            if (sm != null)
             {
-                this.ConnInfoTrace((object)"Stop request ServiceThread");
-                this.sm.StopRequest();
+                ConnInfoTrace((object)"Stop request ServiceThread");
+                sm.StopRequest();
             }
-            this.sm = (ServerMode)null;
+            sm = null;
+            moxaTC = null;
             this.panel5.BackColor = Color.Gray;
             this.buttonStop.Enabled = false;
             this.tbMoxaHost.Enabled = true;
@@ -137,8 +145,6 @@ namespace SerialToIpGUI
             this.buttonStart.Enabled = true;
             this.buttonRefresh.Enabled = true;
         }
-
-        private void ButtonStopClick(object sender, EventArgs e) => this.HandleStop();
 
         public void UpdateState(object obj, CrossThreadComm.State state)
         {
@@ -270,12 +276,6 @@ namespace SerialToIpGUI
 
         private void ButtonClearLogClick(object sender, EventArgs e) => this.ConnInfoTrace((object)null);
 
-        private void Button1Click(object sender, EventArgs e)
-        {
-            this.HandleStop();
-            this.Close();
-        }
-
         private void MainFormMouseDown(object sender, MouseEventArgs e)
         {
             Point point = new Point(e.X, e.Y);
@@ -397,9 +397,10 @@ namespace SerialToIpGUI
             // 
             this.label1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(12, 42);
+            this.label1.Location = new System.Drawing.Point(16, 52);
+            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(90, 21);
+            this.label1.Size = new System.Drawing.Size(120, 26);
             this.label1.TabIndex = 1;
             this.label1.Text = "moxa host";
             // 
@@ -407,9 +408,10 @@ namespace SerialToIpGUI
             // 
             this.label2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label2.Location = new System.Drawing.Point(12, 138);
+            this.label2.Location = new System.Drawing.Point(16, 170);
+            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(90, 21);
+            this.label2.Size = new System.Drawing.Size(120, 26);
             this.label2.TabIndex = 2;
             this.label2.Text = "client port";
             // 
@@ -417,9 +419,10 @@ namespace SerialToIpGUI
             // 
             this.labelRemoteHost.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.labelRemoteHost.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelRemoteHost.Location = new System.Drawing.Point(12, 106);
+            this.labelRemoteHost.Location = new System.Drawing.Point(16, 130);
+            this.labelRemoteHost.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelRemoteHost.Name = "labelRemoteHost";
-            this.labelRemoteHost.Size = new System.Drawing.Size(90, 21);
+            this.labelRemoteHost.Size = new System.Drawing.Size(120, 26);
             this.labelRemoteHost.TabIndex = 8;
             this.labelRemoteHost.Text = "client host";
             // 
@@ -429,9 +432,10 @@ namespace SerialToIpGUI
             this.buttonStart.BackColor = System.Drawing.SystemColors.Control;
             this.buttonStart.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonStart.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.buttonStart.Location = new System.Drawing.Point(84, 632);
+            this.buttonStart.Location = new System.Drawing.Point(112, 642);
+            this.buttonStart.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.buttonStart.Name = "buttonStart";
-            this.buttonStart.Size = new System.Drawing.Size(128, 30);
+            this.buttonStart.Size = new System.Drawing.Size(171, 37);
             this.buttonStart.TabIndex = 7;
             this.buttonStart.Text = "Start";
             this.buttonStart.UseVisualStyleBackColor = true;
@@ -441,9 +445,10 @@ namespace SerialToIpGUI
             // 
             this.label3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label3.Location = new System.Drawing.Point(12, 74);
+            this.label3.Location = new System.Drawing.Point(16, 91);
+            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(90, 21);
+            this.label3.Size = new System.Drawing.Size(120, 26);
             this.label3.TabIndex = 10;
             this.label3.Text = "moxa port";
             // 
@@ -453,9 +458,10 @@ namespace SerialToIpGUI
             this.buttonStop.Enabled = false;
             this.buttonStop.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonStop.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.buttonStop.Location = new System.Drawing.Point(250, 632);
+            this.buttonStop.Location = new System.Drawing.Point(333, 642);
+            this.buttonStop.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.buttonStop.Name = "buttonStop";
-            this.buttonStop.Size = new System.Drawing.Size(95, 30);
+            this.buttonStop.Size = new System.Drawing.Size(127, 37);
             this.buttonStop.TabIndex = 9;
             this.buttonStop.Text = "Stop";
             this.buttonStop.UseVisualStyleBackColor = true;
@@ -469,19 +475,22 @@ namespace SerialToIpGUI
             this.listBoxInfoTrace.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.listBoxInfoTrace.FormattingEnabled = true;
             this.listBoxInfoTrace.HorizontalScrollbar = true;
-            this.listBoxInfoTrace.Location = new System.Drawing.Point(12, 258);
+            this.listBoxInfoTrace.ItemHeight = 16;
+            this.listBoxInfoTrace.Location = new System.Drawing.Point(16, 318);
+            this.listBoxInfoTrace.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.listBoxInfoTrace.Name = "listBoxInfoTrace";
             this.listBoxInfoTrace.ScrollAlwaysVisible = true;
-            this.listBoxInfoTrace.Size = new System.Drawing.Size(686, 368);
+            this.listBoxInfoTrace.Size = new System.Drawing.Size(875, 308);
             this.listBoxInfoTrace.TabIndex = 13;
             // 
             // buttonRefresh
             // 
             this.buttonRefresh.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonRefresh.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonRefresh.Location = new System.Drawing.Point(633, 632);
+            this.buttonRefresh.Location = new System.Drawing.Point(806, 642);
+            this.buttonRefresh.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.buttonRefresh.Name = "buttonRefresh";
-            this.buttonRefresh.Size = new System.Drawing.Size(64, 30);
+            this.buttonRefresh.Size = new System.Drawing.Size(85, 37);
             this.buttonRefresh.TabIndex = 14;
             this.buttonRefresh.Text = "Refresh";
             this.buttonRefresh.UseVisualStyleBackColor = true;
@@ -492,9 +501,10 @@ namespace SerialToIpGUI
             this.buttonClearLog.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.buttonClearLog.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonClearLog.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.buttonClearLog.Location = new System.Drawing.Point(17, 632);
+            this.buttonClearLog.Location = new System.Drawing.Point(23, 642);
+            this.buttonClearLog.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.buttonClearLog.Name = "buttonClearLog";
-            this.buttonClearLog.Size = new System.Drawing.Size(62, 30);
+            this.buttonClearLog.Size = new System.Drawing.Size(83, 37);
             this.buttonClearLog.TabIndex = 8;
             this.buttonClearLog.Text = "Clear";
             this.buttonClearLog.UseVisualStyleBackColor = true;
@@ -507,13 +517,14 @@ namespace SerialToIpGUI
             this.btnCloseForm.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCloseForm.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F);
             this.btnCloseForm.ForeColor = System.Drawing.SystemColors.ControlLightLight;
-            this.btnCloseForm.Location = new System.Drawing.Point(661, 1);
+            this.btnCloseForm.Location = new System.Drawing.Point(843, 1);
+            this.btnCloseForm.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btnCloseForm.Name = "btnCloseForm";
-            this.btnCloseForm.Size = new System.Drawing.Size(48, 26);
+            this.btnCloseForm.Size = new System.Drawing.Size(64, 32);
             this.btnCloseForm.TabIndex = 19;
             this.btnCloseForm.Text = "X";
             this.btnCloseForm.UseVisualStyleBackColor = false;
-            this.btnCloseForm.Click += new System.EventHandler(this.Button1Click);
+            this.btnCloseForm.Click += new System.EventHandler(this.btnCloseFormClick);
             this.btnCloseForm.MouseEnter += new System.EventHandler(this.Button1MouseEnter);
             this.btnCloseForm.MouseLeave += new System.EventHandler(this.Button1MouseLeave);
             this.btnCloseForm.MouseHover += new System.EventHandler(this.Button1MouseHover);
@@ -526,8 +537,9 @@ namespace SerialToIpGUI
             this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
             this.label5.ForeColor = System.Drawing.SystemColors.ControlLightLight;
             this.label5.Location = new System.Drawing.Point(1, 1);
+            this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(613, 26);
+            this.label5.Size = new System.Drawing.Size(779, 32);
             this.label5.TabIndex = 20;
             this.label5.Text = "Server to Client";
             this.label5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -538,27 +550,28 @@ namespace SerialToIpGUI
             // panel1
             // 
             this.panel1.BackColor = System.Drawing.Color.Silver;
-            this.panel1.Location = new System.Drawing.Point(-1, 28);
+            this.panel1.Location = new System.Drawing.Point(-1, 34);
             this.panel1.Margin = new System.Windows.Forms.Padding(0);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1, 311);
+            this.panel1.Size = new System.Drawing.Size(1, 383);
             this.panel1.TabIndex = 21;
             // 
             // panel4
             // 
             this.panel4.BackColor = System.Drawing.Color.Silver;
-            this.panel4.Location = new System.Drawing.Point(0, 30);
+            this.panel4.Location = new System.Drawing.Point(0, 37);
             this.panel4.Margin = new System.Windows.Forms.Padding(0);
             this.panel4.Name = "panel4";
-            this.panel4.Size = new System.Drawing.Size(1, 344);
+            this.panel4.Size = new System.Drawing.Size(1, 423);
             this.panel4.TabIndex = 23;
             // 
             // labelSerialTX
             // 
             this.labelSerialTX.BackColor = System.Drawing.SystemColors.ControlLightLight;
-            this.labelSerialTX.Location = new System.Drawing.Point(88, 230);
+            this.labelSerialTX.Location = new System.Drawing.Point(117, 283);
+            this.labelSerialTX.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelSerialTX.Name = "labelSerialTX";
-            this.labelSerialTX.Size = new System.Drawing.Size(90, 23);
+            this.labelSerialTX.Size = new System.Drawing.Size(120, 28);
             this.labelSerialTX.TabIndex = 24;
             this.labelSerialTX.Text = "0";
             this.labelSerialTX.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -566,9 +579,10 @@ namespace SerialToIpGUI
             // labelRxSerial
             // 
             this.labelRxSerial.BackColor = System.Drawing.SystemColors.ControlLightLight;
-            this.labelRxSerial.Location = new System.Drawing.Point(415, 229);
+            this.labelRxSerial.Location = new System.Drawing.Point(553, 282);
+            this.labelRxSerial.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelRxSerial.Name = "labelRxSerial";
-            this.labelRxSerial.Size = new System.Drawing.Size(91, 23);
+            this.labelRxSerial.Size = new System.Drawing.Size(121, 28);
             this.labelRxSerial.TabIndex = 25;
             this.labelRxSerial.Text = "0";
             this.labelRxSerial.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -577,9 +591,10 @@ namespace SerialToIpGUI
             // 
             this.label6.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
-            this.label6.Location = new System.Drawing.Point(12, 230);
+            this.label6.Location = new System.Drawing.Point(16, 283);
+            this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(66, 23);
+            this.label6.Size = new System.Drawing.Size(88, 28);
             this.label6.TabIndex = 26;
             this.label6.Text = "SerTX:";
             // 
@@ -587,9 +602,10 @@ namespace SerialToIpGUI
             // 
             this.label7.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.label7.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
-            this.label7.Location = new System.Drawing.Point(347, 230);
+            this.label7.Location = new System.Drawing.Point(463, 283);
+            this.label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(62, 23);
+            this.label7.Size = new System.Drawing.Size(83, 28);
             this.label7.TabIndex = 27;
             this.label7.Text = "SerRX:";
             // 
@@ -600,9 +616,10 @@ namespace SerialToIpGUI
             this.buttonMinimize.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonMinimize.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F);
             this.buttonMinimize.ForeColor = System.Drawing.SystemColors.ControlLightLight;
-            this.buttonMinimize.Location = new System.Drawing.Point(614, 1);
+            this.buttonMinimize.Location = new System.Drawing.Point(781, 1);
+            this.buttonMinimize.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.buttonMinimize.Name = "buttonMinimize";
-            this.buttonMinimize.Size = new System.Drawing.Size(48, 26);
+            this.buttonMinimize.Size = new System.Drawing.Size(64, 32);
             this.buttonMinimize.TabIndex = 28;
             this.buttonMinimize.Text = "_";
             this.buttonMinimize.UseVisualStyleBackColor = false;
@@ -612,54 +629,60 @@ namespace SerialToIpGUI
             // 
             this.panel5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.panel5.BackColor = System.Drawing.SystemColors.ControlLight;
-            this.panel5.Location = new System.Drawing.Point(216, 631);
+            this.panel5.Location = new System.Drawing.Point(288, 641);
+            this.panel5.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.panel5.Name = "panel5";
-            this.panel5.Size = new System.Drawing.Size(31, 30);
+            this.panel5.Size = new System.Drawing.Size(41, 37);
             this.panel5.TabIndex = 29;
             // 
             // tbClientPort
             // 
             this.tbClientPort.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbClientPort.Location = new System.Drawing.Point(104, 135);
+            this.tbClientPort.Location = new System.Drawing.Point(139, 166);
+            this.tbClientPort.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.tbClientPort.Name = "tbClientPort";
-            this.tbClientPort.Size = new System.Drawing.Size(161, 26);
+            this.tbClientPort.Size = new System.Drawing.Size(213, 30);
             this.tbClientPort.TabIndex = 3;
             // 
             // tbMoxaHost
             // 
             this.tbMoxaHost.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbMoxaHost.Location = new System.Drawing.Point(104, 39);
+            this.tbMoxaHost.Location = new System.Drawing.Point(139, 48);
+            this.tbMoxaHost.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.tbMoxaHost.Name = "tbMoxaHost";
-            this.tbMoxaHost.Size = new System.Drawing.Size(161, 26);
+            this.tbMoxaHost.Size = new System.Drawing.Size(213, 30);
             this.tbMoxaHost.TabIndex = 30;
             // 
             // tbMoxaPort
             // 
             this.tbMoxaPort.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbMoxaPort.Location = new System.Drawing.Point(104, 71);
+            this.tbMoxaPort.Location = new System.Drawing.Point(139, 87);
+            this.tbMoxaPort.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.tbMoxaPort.Name = "tbMoxaPort";
-            this.tbMoxaPort.Size = new System.Drawing.Size(161, 26);
+            this.tbMoxaPort.Size = new System.Drawing.Size(213, 30);
             this.tbMoxaPort.TabIndex = 31;
             // 
             // tbClientHost
             // 
             this.tbClientHost.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbClientHost.Location = new System.Drawing.Point(104, 103);
+            this.tbClientHost.Location = new System.Drawing.Point(139, 127);
+            this.tbClientHost.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.tbClientHost.Name = "tbClientHost";
-            this.tbClientHost.Size = new System.Drawing.Size(161, 26);
+            this.tbClientHost.Size = new System.Drawing.Size(213, 30);
             this.tbClientHost.TabIndex = 32;
             // 
             // contextMenuStrip1
             // 
+            this.contextMenuStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.contextMenuStrip1.Name = "contextMenuStrip1";
             this.contextMenuStrip1.Size = new System.Drawing.Size(61, 4);
             // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
-            this.ClientSize = new System.Drawing.Size(710, 669);
+            this.ClientSize = new System.Drawing.Size(909, 687);
             this.Controls.Add(this.tbClientHost);
             this.Controls.Add(this.tbMoxaPort);
             this.Controls.Add(this.tbMoxaHost);
@@ -684,6 +707,7 @@ namespace SerialToIpGUI
             this.Controls.Add(this.label1);
             this.Controls.Add(this.label5);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.Name = "MainForm";
             this.Text = "ARM to moxa bidi";
             this.Activated += new System.EventHandler(this.MainFormActivated);
@@ -730,6 +754,12 @@ namespace SerialToIpGUI
                                 null,
                                 cultureInfo,
                                 new object[] { cultureInfo });
+        }
+
+        private void btnCloseFormClick(object sender, EventArgs e)
+        {
+            this.HandleStop();
+            this.Close();
         }
     }
 }
