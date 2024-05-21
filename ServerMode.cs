@@ -38,13 +38,22 @@ namespace serialtoip
             socket.Bind((EndPoint)new IPEndPoint(IPAddress.Any, int.Parse(d["clientPort"].Trim())));
             socket.Listen(1);
             socket.ReceiveTimeout = 10;
+            //socket.Blocking = false;
 
             while (_run)
             {
                 Socket soc = null;
-                if (!moxaTC.Connected && socket.Poll(1000, SelectMode.SelectRead))
-                    soc = socket.Accept();
-
+                try 
+                {
+                    if (!moxaTC.Connected && socket.Poll(1000, SelectMode.SelectRead))
+                        soc = socket.Accept(); // летит исключение, если убрать задержку из StopRequest(), после _run = false;
+                }
+                catch (Exception ex) // для удобства - пишу исключение и пробрасываю наверх, как предусмотрено первоначальной логикой
+                {
+                    logger.Error(ex);
+                    throw;
+                }   
+                
                 if (!moxaTC.Connected && soc != null)
                 {
                     traceFunc("ARM weighter connected");
@@ -93,7 +102,8 @@ namespace serialtoip
             if (conn != null)
                 conn.StopRequest();
             _run = false;
-            
+            Thread.Sleep(1000);  // даю время обновиться состоянию флага _run (и завершиться начатому запросу)  
+
             if (socket != null)
             {
                 if (socket.Connected) 

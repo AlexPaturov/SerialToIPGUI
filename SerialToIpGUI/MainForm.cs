@@ -19,10 +19,10 @@ namespace SerialToIpGUI
         private int _DiagSerportRx;
         private int _DiagSerportTx;
         private static object lck = new object();
-        Socket moxaTC = null;
         protected object _traceListBoxLock = new object();
         private Dictionary<string, string> dn = new Dictionary<string, string>();
         private List<string> _items = new List<string>();
+        Socket moxaTC = null;
         ServerMode sm = null;
         private bool _running = false;
         private bool _shuttingdown = false;

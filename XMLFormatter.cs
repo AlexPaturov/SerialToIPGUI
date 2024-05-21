@@ -184,7 +184,7 @@ namespace serialtoip
             }
             else 
             {
-                throw new Exception("Format of answer from device is incorrect." + input);
+                throw new Exception("Format of answer from device is incorrect. " + input);
             }
 
             XMLtmp.Add("Date", string.Format(CultureInfo.InvariantCulture, "{0:dd/MM/yyyy}", 
