@@ -215,8 +215,7 @@ namespace serialtoip
             XMLtmp.Add("ShiftPro", workInput.Substring(0, workInput.IndexOf(" ")));
             workInput = workInput.Substring(workInput.IndexOf(" ") + 1, (workInput.Length - (workInput.IndexOf(" ") + 1)));                 // 10
 
-            string delta = workInput.Trim();                                                                                                // 11
-            XMLtmp.Add("Delta", workInput);
+            XMLtmp.Add("Delta", workInput.Trim());                                                                                          // 11
 
             return XMLtmp;
         }
