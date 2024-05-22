@@ -26,6 +26,7 @@ namespace serialtoip
         private bool _isfree = true;
         private Dictionary<string, string> _d;
         private bool _keepOpen = true;
+        private static readonly log4net.ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public Connection()
         {
@@ -104,11 +105,14 @@ namespace serialtoip
                     try
                     {
                         this.TraceLine("Connecting to remote host " + this._remotehost + ":" + this._remoteport.ToString());
+                        logger.Info("Connecting to remote host " + this._remotehost + ":" + this._remoteport.ToString());
                         this.socket.Connect(this._remotehost, this._remoteport);
                     }
                     catch (Exception ex)
                     {
                         this.TraceLine("CLIENT SOCKET CONNECT - ERROR OCCURED:\r\n" + ex.ToString());
+                        logger.Error("CLIENT SOCKET CONNECT - ERROR OCCURED");
+                        logger.Error(ex);
                         throw ex;
                     }
                 }
@@ -117,6 +121,7 @@ namespace serialtoip
             if (!this._sp.IsOpen)
             {
                 this.TraceLine("Trying to open serial port " + this._sp.PortName);
+                logger.Info("Trying to open serial port " + this._sp.PortName);
                 try
                 {
                     this._sp.Open();
@@ -124,11 +129,14 @@ namespace serialtoip
                 catch (Exception ex)
                 {
                     this.TraceLine("SERIAL PORT OPEN - ERROR OCCURED:\r\n" + ex.ToString());
+                    logger.Error("SERIAL PORT OPEN - ERROR OCCURED:");
+                    logger.Error(ex);
                     if (this.socket.Connected)
                         this.socket.Close();
                     throw ex;
                 }
                 this.TraceLine("Serial port opened OK");
+                logger.Info("Serial port opened OK");
             }
             new Thread(new ThreadStart(this.Tranceiver)).Start();
             return true;
@@ -156,6 +164,7 @@ namespace serialtoip
             byte[] buffer = new byte[8192];
             this._keepOpen = true;
             this.TraceLine("Client connected from " + this.socket.RemoteEndPoint.ToString());
+            logger.Info("Client connected from " + this.socket.RemoteEndPoint.ToString());
            
             if (this._updState != null)
                 this._updState((object)this, CrossThreadComm.State.connect);
@@ -170,6 +179,7 @@ namespace serialtoip
                     if (this._updRxTx != null)
                         this._updRxTx((object)this, 0, num1);
                     this.TraceLine("IP-to-SERIAL " + num1.ToString());
+                    logger.Info("IP-to-SERIAL " + num1.ToString());
                     this.socket.Receive(buffer, num1, SocketFlags.None);
                     this._sp.Write(buffer, 0, num1);
                     flag = true;
@@ -181,6 +191,7 @@ namespace serialtoip
                     if (this._updRxTx != null)
                         this._updRxTx((object)this, num2, 0);
                     this.TraceLine("SERIAL-to-IP " + num2.ToString());
+                    logger.Info("SERIAL-to-IP " + num2.ToString());
                     this._sp.Read(buffer, 0, num2);
                     this.socket.Send(buffer, num2, SocketFlags.None);
                     flag = true;
@@ -189,6 +200,7 @@ namespace serialtoip
                 if (this.socket.Poll(3000, SelectMode.SelectRead) & this.socket.Available == 0)
                 {
                     this.TraceLine("IP connection lost ");
+                    logger.Info("IP connection lost ");
                     this._keepOpen = false;
                 }
                 
@@ -200,10 +212,12 @@ namespace serialtoip
                 this._updState((object)this, CrossThreadComm.State.disconnect);
 
             this.TraceLine("Client disconnected from " + this.socket.RemoteEndPoint.ToString());
+            logger.Info("Client disconnected from " + this.socket.RemoteEndPoint.ToString());
             
             if (this._sp.IsOpen)
             {
                 this.TraceLine("Closing the serial port " + this._sp.PortName);
+                logger.Info("Closing the serial port " + this._sp.PortName);
                 this._sp.Close();
             }
             

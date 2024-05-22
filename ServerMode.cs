@@ -4,6 +4,7 @@
 // MVID: B1D67A1F-B8BA-49F3-B87A-0CFB4BE0BA84
 // Assembly location: C:\Users\Alex\Downloads\SerialToIPGUI_v1.9_2016-01-23\SerialToIPGUI.exe
 
+using log4net.Repository.Hierarchy;
 using System;
 using System.Collections.Generic;
 using System.IO.Ports;
@@ -17,7 +18,7 @@ namespace serialtoip
     {
         private volatile bool _run = true;
         private Connection conn;
-
+        private static readonly log4net.ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         public void StopRequest()
         {
             if (this.conn != null)
@@ -41,8 +42,11 @@ namespace serialtoip
             CrossThreadComm.UpdateState updState,
             CrossThreadComm.UpdateRXTX updRxTx)
         {
-            if (traceFunc != null)
+            if (traceFunc != null) 
+            { 
                 traceFunc((object)"SOCKET SERVER MODE");
+                logger.Info("SOCKET SERVER MODE");
+            }
 
             DateTime now = DateTime.Now;
             this._run = true;
@@ -56,12 +60,21 @@ namespace serialtoip
             {
                 Socket soc = (Socket)null;
 
-                if (!sp.IsOpen && socket.Poll(1000, SelectMode.SelectRead))
-                    soc = socket.Accept();
+                try 
+                { 
+                    if (!sp.IsOpen && socket.Poll(1000, SelectMode.SelectRead))
+                        soc = socket.Accept();
+                }
+                catch (Exception ex) // для удобства - пишу исключение и пробрасываю наверх, как предусмотрено первоначальной логикой
+                {
+                    logger.Error(ex);
+                    throw;
+                }
 
                 if (!sp.IsOpen && soc != null)
                 {
                     traceFunc((object)"Tcp client connected");
+                    logger.Info("Tcp client connected");
                     this.conn = new Connection();
                     try
                     {
@@ -71,6 +84,8 @@ namespace serialtoip
                     {
                         traceFunc((object)"IP-to-SERIAL connection initialization failed");
                         traceFunc((object)ex.Message);
+                        logger.Error("IP-to-SERIAL connection initialization failed");
+                        logger.Error(ex);
                         this.conn = (Connection)null;
                     }
                 }
@@ -79,6 +94,7 @@ namespace serialtoip
                     if (DateTime.Now.Subtract(now).TotalSeconds > 10.0)
                     {
                         traceFunc((object)"Server active and idle");
+                        logger.Info("Server active and idle");
                         now = DateTime.Now;
                     }
                     Thread.Sleep(1);
@@ -86,6 +102,7 @@ namespace serialtoip
             }
 
             traceFunc((object)"Server shutting down");
+            logger.Info("Server shutting down");
             socket.Close();
             this.conn = (Connection)null;
             if (updState != null)

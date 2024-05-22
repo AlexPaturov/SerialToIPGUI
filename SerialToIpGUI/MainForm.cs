@@ -67,11 +67,14 @@ namespace SerialToIpGUI
         private Label label2;
         private Label label1;
         private ComboBox listBoxSerialPorts;
+        private static readonly log4net.ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         private void ServiceThread()
         {
             this._running = true;
             this.ConnInfoTrace((object)("Service start " + this.dn["serialport"] + " " + int.Parse(this.dn["baudrate"].Trim()).ToString()));
+            logger.Info("Service start " + this.dn["serialport"] + " " + int.Parse(this.dn["baudrate"].Trim()).ToString());
+            
             try
             {
                 MainForm.sp = new SerialPort(this.dn["serialport"], int.Parse(this.dn["baudrate"].Trim()), Parity.None, 8, StopBits.One);
@@ -90,8 +93,12 @@ namespace SerialToIpGUI
             {
                 this._running = false;
                 this.ConnInfoTrace((object)"Mode start failed..");
+                logger.Error("Mode start failed..");
+                logger.Error(ex);
             }
+
             this.ConnInfoTrace((object)"Service stopped");
+            logger.Info("Service stopped");
             this._running = false;
             this.cm = (ClientMode)null;
             this.sm = (ServerMode)null;
@@ -149,11 +156,13 @@ namespace SerialToIpGUI
             if (this.cm != null)
             {
                 this.ConnInfoTrace((object)"Stop request set to Client Mode");
+                logger.Info("Stop request set to Client Mode");
                 this.cm.StopRequest();
             }
             if (this.sm != null)
             {
                 this.ConnInfoTrace((object)"Stop request set to Server Mode");
+                logger.Info("Stop request set to Server Mode");
                 this.sm.StopRequest();
             }
             this.cm = (ClientMode)null;
@@ -195,6 +204,7 @@ namespace SerialToIpGUI
                     case CrossThreadComm.State.terminate:
                         this._connected = false;
                         this.ConnInfoTrace((object)"UpdateState( ) -- service has finished");
+                        logger.Info("UpdateState( ) -- service has finished");
                         break;
                 }
             }
@@ -233,9 +243,11 @@ namespace SerialToIpGUI
                     if (str != null)
                     {
                         this.listBoxInfoTrace.Items.Add((object)(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + str));
+                        logger.Info(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + str);
                         if (this.listBoxInfoTrace.Items.Count > 256)
                             this.listBoxInfoTrace.Items.RemoveAt(0);
                         this.listBoxInfoTrace.SelectedIndex = this.listBoxInfoTrace.Items.Count - 1;
+                        logger.Info(listBoxInfoTrace.Items.Count - 1);
                     }
                     else
                     {
@@ -252,14 +264,26 @@ namespace SerialToIpGUI
         private void InitializeSerialToIPGui()
         {
             this.ConnInfoTrace((object)"GUI init with a serial port scan.");
+            logger.Info("GUI init with a serial port scan.");
             this.listBoxBaudrate.DataSource = (object)this._items;
-            this.listBoxBaudrate.SelectedIndex = 7;      // устанавливаем частоту 115200 
+            
+            try
+            {
+                this.listBoxBaudrate.SelectedIndex = 7;      // устанавливаем частоту 115200 
+            }
+            catch (Exception ex) 
+            { 
+                logger.Error(ex);
+            }
+            
             this.listBoxSerialPorts.Items.Clear();
             string[] portNames = SerialPort.GetPortNames();
             if (portNames.Length == 0)
             {
                 this.listBoxSerialPorts.Items.Add((object)"error: none available!");
+                logger.Info("error: none available!");
                 this.ConnInfoTrace((object)"error: no serial ports found!");
+                logger.Info("error: no serial ports found!");
                 this.listBoxSerialPorts.ForeColor = Color.Red;
                 this.buttonStart.Enabled = false;
             }
@@ -268,8 +292,15 @@ namespace SerialToIpGUI
                 this.listBoxSerialPorts.ForeColor = Color.Black;
                 foreach (object obj in portNames)
                     this.listBoxSerialPorts.Items.Add(obj);
-                if (this.listBoxSerialPorts.Items.Count >= 2)
-                    this.listBoxSerialPorts.SelectedIndex = 2;   // устанавливаем номер COM порта - 3
+                try 
+                { 
+                    if (this.listBoxSerialPorts.Items.Count >= 2)
+                        this.listBoxSerialPorts.SelectedIndex = 2;   // устанавливаем номер COM порта - 3
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex);
+                }
             }
             this.textBoxSocketPort.Text = this.dn["socketport"];
             this.radioButtonServer.Checked = true;
