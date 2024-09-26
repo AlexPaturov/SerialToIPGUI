@@ -247,11 +247,11 @@ namespace SerialToIpGUI
             MainForm._conInfoTrace = new CrossThreadComm.TraceCb(this.ConnInfoTrace);
             MainForm._updateState = new CrossThreadComm.UpdateState(this.UpdateState);
             MainForm._updRxTx = new CrossThreadComm.UpdateRXTX(this.UpdateRxTx);
-            this.dn.Add("moxaHost", "10.10.10.1");
-            this.dn.Add("moxaHostDKZ", "dkz-moxa-010");
-            this.dn.Add("moxaPort", "4001");
-            this.dn.Add("clientHost", "127.0.0.1");
-            this.dn.Add("clientPort", "8888");
+            dn.Add("moxaHost", "10.10.10.1");
+            dn.Add("moxaHostDKZ", "dkz-moxa-010");
+            dn.Add("moxaPort", "4001");
+            dn.Add("clientHost", "127.0.0.1");
+            dn.Add("clientPort", "8888");
 
             ToolTip toolTip = new ToolTip();
             toolTip.AutoPopDelay = 5000;

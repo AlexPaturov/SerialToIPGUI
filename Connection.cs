@@ -111,8 +111,8 @@ namespace serialtoip
                     }
                     // throw ex;
                 }
-                TraceLine("Connect to weighter ARM success. " + _d["moxaHost"] + ":" + _d["moxaPort"]); // подключение к АРМ весов - спецификация
-                logger.Info("Connect to weighter ARM success. " + _d["moxaHost"] + ":" + _d["moxaPort"]);
+                TraceLine("Connection to controller - OK " + _moxaTC.RemoteEndPoint.ToString()); // подключение к контроллеру - спецификация
+                logger.Info("Connection to controller - OK " + _moxaTC.RemoteEndPoint.ToString());
             }
             new Thread(new ThreadStart(Tranceiver)).Start();
             return true;

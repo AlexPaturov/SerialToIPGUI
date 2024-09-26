@@ -31,7 +31,7 @@ namespace serialtoip
         {
             //if (traceFunc != null)
             //    traceFunc((object)"SOCKET SERVER MODE");
-            DateTime now = DateTime.Now;
+            DateTime dtPrevious = DateTime.Now;
             _run = true;
 
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -43,6 +43,7 @@ namespace serialtoip
             while (_run)
             {
                 Socket soc = null;
+                
                 try 
                 {
                     if (!moxaTC.Connected && socket.Poll(1000, SelectMode.SelectRead))
@@ -72,11 +73,11 @@ namespace serialtoip
                 }
                 else
                 {
-                    if (DateTime.Now.Subtract(now).TotalSeconds > 10.0)
+                    if (DateTime.Now.Subtract(dtPrevious).TotalSeconds > 10.0)
                     {
                         traceFunc("Server active and idle");
                         logger.Info("Server active and idle");
-                        now = DateTime.Now;
+                        dtPrevious = DateTime.Now;
                     }
                     Thread.Sleep(1);
                 }
