@@ -22,7 +22,10 @@ namespace SerialToIpGUI
         protected object _traceListBoxLock = new object();
         private Dictionary<string, string> dn = new Dictionary<string, string>();
         private List<string> _items = new List<string>();
+
+        // добавить udp клиента 
         Socket moxaTC = null;
+
         ServerMode sm = null;
         private bool _running = false;
         private bool _shuttingdown = false;
@@ -66,8 +69,12 @@ namespace SerialToIpGUI
             
             try
             {
+                // добавить udp клиента 
                 moxaTC = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
                 sm = new ServerMode();
+
+                // добавить udp клиента 
                 sm.Run(dn, moxaTC, MainForm._conInfoTrace, MainForm._updateState, MainForm._updRxTx);
                  
             }
@@ -83,6 +90,8 @@ namespace SerialToIpGUI
             ConnInfoTrace("ServiceThread stopped");
             _running = false;
             sm = null;
+
+            // добавить udp клиента 
             moxaTC = null;
             thServiceThread = null;
         }
@@ -135,6 +144,8 @@ namespace SerialToIpGUI
                 sm.StopRequest();
             }
             sm = null;
+
+            // добавить udp клиента 
             moxaTC = null;
             this.panel5.BackColor = Color.Gray;
             this.buttonStop.Enabled = false;
@@ -207,11 +218,9 @@ namespace SerialToIpGUI
                     if (str != null)
                     {
                         this.listBoxInfoTrace.Items.Add((object)(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + str));
-                        //logger.Debug((object)(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss ") + str));
                         if (this.listBoxInfoTrace.Items.Count > 256)
                             this.listBoxInfoTrace.Items.RemoveAt(0);
                         this.listBoxInfoTrace.SelectedIndex = this.listBoxInfoTrace.Items.Count - 1;
-                        //logger.Debug(this.listBoxInfoTrace.Items.Count - 1);
                     }
                     else
                     {
@@ -252,6 +261,8 @@ namespace SerialToIpGUI
             dn.Add("moxaPort", "4001");
             dn.Add("clientHost", "127.0.0.1");
             dn.Add("clientPort", "8888");
+            dn.Add("vesy31ip", "192.168.0.106"); // для контроллера 31-х весов
+            dn.Add("vesy31port", "10001");       // для контроллера 31-х весов
 
             ToolTip toolTip = new ToolTip();
             toolTip.AutoPopDelay = 5000;

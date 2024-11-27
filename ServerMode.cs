@@ -15,15 +15,21 @@ namespace serialtoip
 
         public int Run(
             Dictionary<string, string> d,
+
+            // добавить udp клиента 
             Socket moxaTC,
             CrossThreadComm.TraceCb traceFunc,
             CrossThreadComm.UpdateState updState)
         {
+
+            // добавить udp клиента 
             return this.Run(d, moxaTC, traceFunc, updState, (CrossThreadComm.UpdateRXTX)null);
         }
 
         public int Run(
             Dictionary<string, string> d,
+
+            // добавить udp клиента 
             Socket moxaTC,
             CrossThreadComm.TraceCb traceFunc,
             CrossThreadComm.UpdateState updState,
@@ -46,6 +52,7 @@ namespace serialtoip
                 
                 try 
                 {
+                    // добавить udp клиента 
                     if (!moxaTC.Connected && socket.Poll(1000, SelectMode.SelectRead))
                         soc = socket.Accept(); // летит исключение, если убрать задержку из StopRequest(), после _run = false;
                 }
@@ -53,14 +60,16 @@ namespace serialtoip
                 {
                     logger.Error(ex);
                     throw;
-                }   
-                
+                }
+
+                // добавить udp клиента 
                 if (!moxaTC.Connected && soc != null)
                 {
                     traceFunc("ARM weighter connected");
                     conn = new Connection();
                     try
                     {
+                        // добавить udp клиента 
                         conn.StartConnection(soc, d, moxaTC, traceFunc, updState, updRxTx);
                     }
                     catch (Exception ex)

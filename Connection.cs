@@ -12,6 +12,8 @@ namespace serialtoip
         private CrossThreadComm.UpdateState _updState;
         private CrossThreadComm.UpdateRXTX _updRxTx;
         public Socket ARMsocket;
+
+        // добавить udp клиента 
         public Socket _moxaTC;
         private bool _isfree = true;
         private Dictionary<string, string> _d;
@@ -78,6 +80,8 @@ namespace serialtoip
           CrossThreadComm.UpdateRXTX updRxTx)
         {
             ARMsocket = soc;
+
+            // добавить udp клиента 
             _moxaTC = moxaTC;
             _d = d;
             _updState = updState;
@@ -88,11 +92,13 @@ namespace serialtoip
                 _updState((object)this, CrossThreadComm.State.start);
             _isfree = false;
 
+            // добавить udp клиента 
             if (!_moxaTC.Connected)
             {
                 TraceLine("Trying to connect to weighter ARM " + _d["moxaHost"] + ":" + _d["moxaPort"]);
                 try
                 {
+                    // добавить udp клиента 
                     _moxaTC = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); // так себе решение
                     _moxaTC.ReceiveTimeout = 500;
                     _moxaTC.SendTimeout = 500;  
@@ -111,6 +117,8 @@ namespace serialtoip
                     }
                     // throw ex;
                 }
+
+                // добавить udp клиента 
                 TraceLine("Connection to controller - OK " + _moxaTC.RemoteEndPoint.ToString()); // подключение к контроллеру - спецификация
                 logger.Info("Connection to controller - OK " + _moxaTC.RemoteEndPoint.ToString());
             }
@@ -149,7 +157,8 @@ namespace serialtoip
                     if (controllerCommand != null)                                                          // команда корректна -> отправляем устройству
                     {
                         try 
-                        { 
+                        {
+                            // добавить udp клиента 
                             _moxaTC.Send(controllerCommand, controllerCommand.Length, SocketFlags.None);    // запрос драйвера контроллеру
                             logger.Info(Encoding.GetEncoding(1251).GetString(controllerCommand));           // команда контроллеру
                             Thread.Sleep(600);                                                              // подождём пока данные прийдут. На 200 - сыплет ошибки.
@@ -179,6 +188,7 @@ namespace serialtoip
                 // ------------------------------ от клиента пришёл запрос end --------------------------------------------------------------
 
                 // ------------------------------ от моксы пришёл ответ начало --------------------------------------------------------------------- 
+                // добавить udp клиента 
                 int colByteFromMoxa = LimitTo(_moxaTC.Available, 8192);
                 if (colByteFromMoxa > 0)
                 {
@@ -187,6 +197,7 @@ namespace serialtoip
 
                     try
                     {
+                        // добавить udp клиента 
                         _moxaTC.Receive(buffer, colByteFromMoxa, SocketFlags.None);
                     }
                     catch (SocketException ex)
@@ -237,13 +248,17 @@ namespace serialtoip
             if (_updState != null)
                 _updState(this, CrossThreadComm.State.disconnect);
             //TraceLine("Client disconnected from " + ARMsocket.RemoteEndPoint.ToString());
-            
+
+            // добавить udp клиента 
             if (_moxaTC.Connected)
             {
+                // добавить udp клиента 
                 TraceLine("Connect to controller is closed " + _moxaTC.RemoteEndPoint.ToString());  // отключение от контроллера
                 logger.Info("Connect to controller is closed " + _moxaTC.RemoteEndPoint.ToString());
                 //_moxaTC.Shutdown(SocketShutdown.Both);
                 //_moxaTC.Disconnect(true);
+
+                // добавить udp клиента 
                 _moxaTC.Close();
             }
 
