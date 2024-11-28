@@ -17,20 +17,29 @@ namespace serialtoip
             Dictionary<string, string> d,
 
             // добавить udp клиента 
-            Socket moxaTC,
+            //Socket moxaTC,
+            UdpClient udpServer,
+            CancellationTokenSource udpCts,
             CrossThreadComm.TraceCb traceFunc,
             CrossThreadComm.UpdateState updState)
         {
 
             // добавить udp клиента 
-            return this.Run(d, moxaTC, traceFunc, updState, (CrossThreadComm.UpdateRXTX)null);
+            return this.Run(d,
+                            udpServer,
+                            udpCts,
+                            traceFunc, 
+                            updState, 
+                            (CrossThreadComm.UpdateRXTX)null);
         }
 
         public int Run(
             Dictionary<string, string> d,
 
             // добавить udp клиента 
-            Socket moxaTC,
+            //Socket moxaTC,
+            UdpClient udpServer,
+            CancellationTokenSource udpCts,
             CrossThreadComm.TraceCb traceFunc,
             CrossThreadComm.UpdateState updState,
             CrossThreadComm.UpdateRXTX updRxTx)
@@ -53,7 +62,8 @@ namespace serialtoip
                 try 
                 {
                     // добавить udp клиента 
-                    if (!moxaTC.Connected && socket.Poll(1000, SelectMode.SelectRead))
+                    //if (!moxaTC.Connected && socket.Poll(1000, SelectMode.SelectRead))
+                    if ((udpServer is null) && socket.Poll(1000, SelectMode.SelectRead))
                         soc = socket.Accept(); // летит исключение, если убрать задержку из StopRequest(), после _run = false;
                 }
                 catch (Exception ex) // для удобства - пишу исключение и пробрасываю наверх, как предусмотрено первоначальной логикой
@@ -63,14 +73,20 @@ namespace serialtoip
                 }
 
                 // добавить udp клиента 
-                if (!moxaTC.Connected && soc != null)
+                if ((udpServer is null) && soc != null)
                 {
                     traceFunc("ARM weighter connected");
                     conn = new Connection();
                     try
                     {
                         // добавить udp клиента 
-                        conn.StartConnection(soc, d, moxaTC, traceFunc, updState, updRxTx);
+                        conn.StartConnection(soc,
+                                             d,
+                                             udpServer,
+                                             udpCts,
+                                             traceFunc, 
+                                             updState, 
+                                             updRxTx);
                     }
                     catch (Exception ex)
                     {

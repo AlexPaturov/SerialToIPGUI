@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>drvVesy10</AssemblyName>
+    <RootNamespace>serialtoip</RootNamespace>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.9.5866.19643</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Product>drvVesy10</Product>
+    <AssemblyTitle>drvVesy10</AssemblyTitle>
+    <Copyright>Licensed under GPL</Copyright>
+    <AssemblyVersion>1.9.5866.19643</AssemblyVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="log4net" Version="2.0.17" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SystemWebAdapters" Version="1.3.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Backup\AssemblyInfo.cs" />
+    <Compile Remove="Backup\ClientMode.cs" />
+    <Compile Remove="Backup\Connection.cs" />
+    <Compile Remove="Backup\CrossThreadComm.cs" />
+    <Compile Remove="Backup\SerialToIpGUI\MainForm.cs" />
+    <Compile Remove="Backup\SerialToIpGUI\Program.cs" />
+    <Compile Remove="Backup\SerialToIpGUI\Resource1.cs" />
+    <Compile Remove="Backup\ServerMode.cs" />
+    <EmbeddedResource Remove="Backup\SerialToIpGUI\Resource1.resx" />
+  </ItemGroup>
+</Project>

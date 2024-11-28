@@ -22,10 +22,8 @@ namespace SerialToIpGUI
         protected object _traceListBoxLock = new object();
         private Dictionary<string, string> dn = new Dictionary<string, string>();
         private List<string> _items = new List<string>();
-
-        // добавить udp клиента 
-        Socket moxaTC = null;
-
+        private CancellationTokenSource _udpCts;
+        private UdpClient _udpServer;
         ServerMode sm = null;
         private bool _running = false;
         private bool _shuttingdown = false;
@@ -55,8 +53,8 @@ namespace SerialToIpGUI
         private Label labelRemoteHost;
         private Label label2;
         private TextBox tbClientPort;
-        private TextBox tbMoxaHost;
-        private TextBox tbMoxaPort;
+        private TextBox tbVesy31ip;
+        private TextBox tbVesy31port;
         private TextBox tbClientHost;
         private ContextMenuStrip contextMenuStrip1;
         private Label label1;
@@ -70,12 +68,17 @@ namespace SerialToIpGUI
             try
             {
                 // добавить udp клиента 
-                moxaTC = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                //moxaTC = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
                 sm = new ServerMode();
 
                 // добавить udp клиента 
-                sm.Run(dn, moxaTC, MainForm._conInfoTrace, MainForm._updateState, MainForm._updRxTx);
+                sm.Run(dn, 
+                       _udpServer, 
+                       _udpCts,  
+                       MainForm._conInfoTrace, 
+                       MainForm._updateState, 
+                       MainForm._updRxTx);
                  
             }
             catch (Exception ex)
@@ -92,22 +95,23 @@ namespace SerialToIpGUI
             sm = null;
 
             // добавить udp клиента 
-            moxaTC = null;
+            //moxaTC = null;
+            _udpServer = null;
             thServiceThread = null;
         }
 
         private void ButtonStartClick(object sender, EventArgs e)
         {
             #region enable/disable input element
-            this.tbMoxaHost.Enabled     = false;
-            this.tbMoxaPort.Enabled     = false;
+            this.tbVesy31ip.Enabled     = false;
+            this.tbVesy31port.Enabled     = false;
             this.tbClientHost.Enabled   = false;
             this.tbClientPort.Enabled   = false;
             this.buttonStop.Enabled     = true;
-            this.buttonStart.Enabled    = false;
+            this.buttonStart.Enabled    = false; 
             this.buttonRefresh.Enabled  = false;
-            this.dn["moxaHost"]         = this.tbMoxaHost.Text.Trim();
-            this.dn["moxaPort"]         = this.tbMoxaPort.Text.Trim();
+            this.dn["vesy31ip"]         = this.tbVesy31ip.Text.Trim();
+            this.dn["vesy31port"]         = this.tbVesy31port.Text.Trim();
             this.dn["clientHost"]       = this.tbClientHost.Text.Trim();
             this.dn["clientPort"]       = this.tbClientPort.Text.Trim();
             #endregion
@@ -146,11 +150,13 @@ namespace SerialToIpGUI
             sm = null;
 
             // добавить udp клиента 
-            moxaTC = null;
+            //moxaTC = null;
+            _udpServer = null;
+            
             this.panel5.BackColor = Color.Gray;
             this.buttonStop.Enabled = false;
-            this.tbMoxaHost.Enabled = true;
-            this.tbMoxaPort.Enabled = true;
+            this.tbVesy31ip.Enabled = true;
+            this.tbVesy31port.Enabled = true;
             this.tbClientHost.Enabled = true;
             this.tbClientPort.Enabled = true;
             this.buttonStart.Enabled = true;
@@ -234,17 +240,12 @@ namespace SerialToIpGUI
             }
         }
 
-        private void InitializeSerialToIPGui()
+        private void InitializeSerialToIPGui() 
         {
             SetDefaultCulture();
             this.ConnInfoTrace((object)"GUI init");
-            
-            if (Environment.MachineName == "ALEXPC")
-                this.tbMoxaHost.Text = this.dn["moxaHost"];     // на моей машине
-            else
-                this.tbMoxaHost.Text = this.dn["moxaHostDKZ"];  // на рабочей
-
-            this.tbMoxaPort.Text = this.dn["moxaPort"];
+            this.tbVesy31ip.Text = this.dn["vesy31ip"];     // на моей машине
+            this.tbVesy31port.Text = this.dn["vesy31port"];
             this.tbClientHost.Text = this.dn["clientHost"];
             this.tbClientPort.Text = this.dn["clientPort"];
             this.buttonStop.Enabled = false;
@@ -256,9 +257,6 @@ namespace SerialToIpGUI
             MainForm._conInfoTrace = new CrossThreadComm.TraceCb(this.ConnInfoTrace);
             MainForm._updateState = new CrossThreadComm.UpdateState(this.UpdateState);
             MainForm._updRxTx = new CrossThreadComm.UpdateRXTX(this.UpdateRxTx);
-            dn.Add("moxaHost", "10.10.10.1");
-            dn.Add("moxaHostDKZ", "dkz-moxa-010");
-            dn.Add("moxaPort", "4001");
             dn.Add("clientHost", "127.0.0.1");
             dn.Add("clientPort", "8888");
             dn.Add("vesy31ip", "192.168.0.106"); // для контроллера 31-х весов
@@ -377,360 +375,360 @@ namespace SerialToIpGUI
 
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
-            this.label1 = new System.Windows.Forms.Label();
-            this.label2 = new System.Windows.Forms.Label();
-            this.labelRemoteHost = new System.Windows.Forms.Label();
-            this.buttonStart = new System.Windows.Forms.Button();
-            this.label3 = new System.Windows.Forms.Label();
-            this.buttonStop = new System.Windows.Forms.Button();
-            this.listBoxInfoTrace = new System.Windows.Forms.ListBox();
-            this.buttonRefresh = new System.Windows.Forms.Button();
-            this.buttonClearLog = new System.Windows.Forms.Button();
-            this.btnCloseForm = new System.Windows.Forms.Button();
-            this.label5 = new System.Windows.Forms.Label();
-            this.panel1 = new System.Windows.Forms.Panel();
-            this.panel4 = new System.Windows.Forms.Panel();
-            this.labelSerialTX = new System.Windows.Forms.Label();
-            this.labelRxSerial = new System.Windows.Forms.Label();
-            this.label6 = new System.Windows.Forms.Label();
-            this.label7 = new System.Windows.Forms.Label();
-            this.buttonMinimize = new System.Windows.Forms.Button();
-            this.panel5 = new System.Windows.Forms.Panel();
-            this.tbClientPort = new System.Windows.Forms.TextBox();
-            this.tbMoxaHost = new System.Windows.Forms.TextBox();
-            this.tbMoxaPort = new System.Windows.Forms.TextBox();
-            this.tbClientHost = new System.Windows.Forms.TextBox();
-            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.SuspendLayout();
+            components = new Container();
+            label1 = new Label();
+            label2 = new Label();
+            labelRemoteHost = new Label();
+            buttonStart = new Button();
+            label3 = new Label();
+            buttonStop = new Button();
+            listBoxInfoTrace = new ListBox();
+            buttonRefresh = new Button();
+            buttonClearLog = new Button();
+            btnCloseForm = new Button();
+            label5 = new Label();
+            panel1 = new Panel();
+            panel4 = new Panel();
+            labelSerialTX = new Label();
+            labelRxSerial = new Label();
+            label6 = new Label();
+            label7 = new Label();
+            buttonMinimize = new Button();
+            panel5 = new Panel();
+            tbClientPort = new TextBox();
+            tbVesy31ip = new TextBox();
+            tbVesy31port = new TextBox();
+            tbClientHost = new TextBox();
+            contextMenuStrip1 = new ContextMenuStrip(components);
+            SuspendLayout();
             // 
             // label1
             // 
-            this.label1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
-            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(16, 52);
-            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(120, 26);
-            this.label1.TabIndex = 1;
-            this.label1.Text = "moxa host";
+            label1.BackColor = Color.FromArgb(224, 224, 224);
+            label1.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label1.Location = new Point(16, 62);
+            label1.Margin = new Padding(4, 0, 4, 0);
+            label1.Name = "label1";
+            label1.Size = new Size(120, 32);
+            label1.TabIndex = 1;
+            label1.Text = "vesy31 ip";
+            label1.TextAlign = ContentAlignment.MiddleRight;
             // 
             // label2
             // 
-            this.label2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
-            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label2.Location = new System.Drawing.Point(16, 170);
-            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(120, 26);
-            this.label2.TabIndex = 2;
-            this.label2.Text = "client port";
+            label2.BackColor = Color.FromArgb(224, 224, 224);
+            label2.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label2.Location = new Point(16, 212);
+            label2.Margin = new Padding(4, 0, 4, 0);
+            label2.Name = "label2";
+            label2.Size = new Size(120, 32);
+            label2.TabIndex = 2;
+            label2.Text = "client port";
+            label2.TextAlign = ContentAlignment.MiddleRight;
             // 
             // labelRemoteHost
             // 
-            this.labelRemoteHost.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
-            this.labelRemoteHost.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelRemoteHost.Location = new System.Drawing.Point(16, 130);
-            this.labelRemoteHost.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.labelRemoteHost.Name = "labelRemoteHost";
-            this.labelRemoteHost.Size = new System.Drawing.Size(120, 26);
-            this.labelRemoteHost.TabIndex = 8;
-            this.labelRemoteHost.Text = "client host";
+            labelRemoteHost.BackColor = Color.FromArgb(224, 224, 224);
+            labelRemoteHost.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            labelRemoteHost.Location = new Point(16, 162);
+            labelRemoteHost.Margin = new Padding(4, 0, 4, 0);
+            labelRemoteHost.Name = "labelRemoteHost";
+            labelRemoteHost.Size = new Size(120, 32);
+            labelRemoteHost.TabIndex = 8;
+            labelRemoteHost.Text = "client host";
+            labelRemoteHost.TextAlign = ContentAlignment.MiddleRight;
             // 
             // buttonStart
             // 
-            this.buttonStart.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.buttonStart.BackColor = System.Drawing.SystemColors.Control;
-            this.buttonStart.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonStart.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.buttonStart.Location = new System.Drawing.Point(112, 642);
-            this.buttonStart.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.buttonStart.Name = "buttonStart";
-            this.buttonStart.Size = new System.Drawing.Size(171, 37);
-            this.buttonStart.TabIndex = 7;
-            this.buttonStart.Text = "Start";
-            this.buttonStart.UseVisualStyleBackColor = true;
-            this.buttonStart.Click += new System.EventHandler(this.ButtonStartClick);
+            buttonStart.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            buttonStart.BackColor = SystemColors.Control;
+            buttonStart.FlatStyle = FlatStyle.Flat;
+            buttonStart.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            buttonStart.Location = new Point(112, 802);
+            buttonStart.Margin = new Padding(4, 5, 4, 5);
+            buttonStart.Name = "buttonStart";
+            buttonStart.Size = new Size(171, 46);
+            buttonStart.TabIndex = 7;
+            buttonStart.Text = "Start";
+            buttonStart.UseVisualStyleBackColor = true;
+            buttonStart.Click += ButtonStartClick;
             // 
             // label3
             // 
-            this.label3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
-            this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label3.Location = new System.Drawing.Point(16, 91);
-            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(120, 26);
-            this.label3.TabIndex = 10;
-            this.label3.Text = "moxa port";
+            label3.BackColor = Color.FromArgb(224, 224, 224);
+            label3.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label3.Location = new Point(16, 114);
+            label3.Margin = new Padding(4, 0, 4, 0);
+            label3.Name = "label3";
+            label3.Size = new Size(120, 32);
+            label3.TabIndex = 10;
+            label3.Text = "vesy31 port";
+            label3.TextAlign = ContentAlignment.MiddleRight;
             // 
             // buttonStop
             // 
-            this.buttonStop.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.buttonStop.Enabled = false;
-            this.buttonStop.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonStop.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.buttonStop.Location = new System.Drawing.Point(333, 642);
-            this.buttonStop.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.buttonStop.Name = "buttonStop";
-            this.buttonStop.Size = new System.Drawing.Size(127, 37);
-            this.buttonStop.TabIndex = 9;
-            this.buttonStop.Text = "Stop";
-            this.buttonStop.UseVisualStyleBackColor = true;
-            this.buttonStop.Click += new System.EventHandler(this.ButtonStopClick);
+            buttonStop.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            buttonStop.Enabled = false;
+            buttonStop.FlatStyle = FlatStyle.Flat;
+            buttonStop.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            buttonStop.Location = new Point(333, 802);
+            buttonStop.Margin = new Padding(4, 5, 4, 5);
+            buttonStop.Name = "buttonStop";
+            buttonStop.Size = new Size(127, 46);
+            buttonStop.TabIndex = 9;
+            buttonStop.Text = "Stop";
+            buttonStop.UseVisualStyleBackColor = true;
+            buttonStop.Click += ButtonStopClick;
             // 
             // listBoxInfoTrace
             // 
-            this.listBoxInfoTrace.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.listBoxInfoTrace.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.listBoxInfoTrace.FormattingEnabled = true;
-            this.listBoxInfoTrace.HorizontalScrollbar = true;
-            this.listBoxInfoTrace.ItemHeight = 16;
-            this.listBoxInfoTrace.Location = new System.Drawing.Point(16, 318);
-            this.listBoxInfoTrace.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.listBoxInfoTrace.Name = "listBoxInfoTrace";
-            this.listBoxInfoTrace.ScrollAlwaysVisible = true;
-            this.listBoxInfoTrace.Size = new System.Drawing.Size(875, 308);
-            this.listBoxInfoTrace.TabIndex = 13;
+            listBoxInfoTrace.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            listBoxInfoTrace.Font = new Font("Microsoft Sans Serif", 8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            listBoxInfoTrace.FormattingEnabled = true;
+            listBoxInfoTrace.HorizontalScrollbar = true;
+            listBoxInfoTrace.ItemHeight = 16;
+            listBoxInfoTrace.Location = new Point(16, 398);
+            listBoxInfoTrace.Margin = new Padding(4, 5, 4, 5);
+            listBoxInfoTrace.Name = "listBoxInfoTrace";
+            listBoxInfoTrace.ScrollAlwaysVisible = true;
+            listBoxInfoTrace.Size = new Size(875, 372);
+            listBoxInfoTrace.TabIndex = 13;
             // 
             // buttonRefresh
             // 
-            this.buttonRefresh.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonRefresh.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonRefresh.Location = new System.Drawing.Point(806, 642);
-            this.buttonRefresh.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.buttonRefresh.Name = "buttonRefresh";
-            this.buttonRefresh.Size = new System.Drawing.Size(85, 37);
-            this.buttonRefresh.TabIndex = 14;
-            this.buttonRefresh.Text = "Refresh";
-            this.buttonRefresh.UseVisualStyleBackColor = true;
-            this.buttonRefresh.Click += new System.EventHandler(this.ButtonRefreshClick);
+            buttonRefresh.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            buttonRefresh.FlatStyle = FlatStyle.Flat;
+            buttonRefresh.Location = new Point(806, 802);
+            buttonRefresh.Margin = new Padding(4, 5, 4, 5);
+            buttonRefresh.Name = "buttonRefresh";
+            buttonRefresh.Size = new Size(85, 46);
+            buttonRefresh.TabIndex = 14;
+            buttonRefresh.Text = "Refresh";
+            buttonRefresh.UseVisualStyleBackColor = true;
+            buttonRefresh.Click += ButtonRefreshClick;
             // 
             // buttonClearLog
             // 
-            this.buttonClearLog.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.buttonClearLog.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonClearLog.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.buttonClearLog.Location = new System.Drawing.Point(23, 642);
-            this.buttonClearLog.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.buttonClearLog.Name = "buttonClearLog";
-            this.buttonClearLog.Size = new System.Drawing.Size(83, 37);
-            this.buttonClearLog.TabIndex = 8;
-            this.buttonClearLog.Text = "Clear";
-            this.buttonClearLog.UseVisualStyleBackColor = true;
-            this.buttonClearLog.Click += new System.EventHandler(this.ButtonClearLogClick);
+            buttonClearLog.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            buttonClearLog.FlatStyle = FlatStyle.Flat;
+            buttonClearLog.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            buttonClearLog.Location = new Point(23, 802);
+            buttonClearLog.Margin = new Padding(4, 5, 4, 5);
+            buttonClearLog.Name = "buttonClearLog";
+            buttonClearLog.Size = new Size(83, 46);
+            buttonClearLog.TabIndex = 8;
+            buttonClearLog.Text = "Clear";
+            buttonClearLog.UseVisualStyleBackColor = true;
+            buttonClearLog.Click += ButtonClearLogClick;
             // 
             // btnCloseForm
             // 
-            this.btnCloseForm.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnCloseForm.BackColor = System.Drawing.Color.DodgerBlue;
-            this.btnCloseForm.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnCloseForm.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F);
-            this.btnCloseForm.ForeColor = System.Drawing.SystemColors.ControlLightLight;
-            this.btnCloseForm.Location = new System.Drawing.Point(843, 1);
-            this.btnCloseForm.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.btnCloseForm.Name = "btnCloseForm";
-            this.btnCloseForm.Size = new System.Drawing.Size(64, 32);
-            this.btnCloseForm.TabIndex = 19;
-            this.btnCloseForm.Text = "X";
-            this.btnCloseForm.UseVisualStyleBackColor = false;
-            this.btnCloseForm.Click += new System.EventHandler(this.btnCloseFormClick);
-            this.btnCloseForm.MouseEnter += new System.EventHandler(this.Button1MouseEnter);
-            this.btnCloseForm.MouseLeave += new System.EventHandler(this.Button1MouseLeave);
-            this.btnCloseForm.MouseHover += new System.EventHandler(this.Button1MouseHover);
+            btnCloseForm.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnCloseForm.BackColor = Color.DodgerBlue;
+            btnCloseForm.FlatStyle = FlatStyle.Flat;
+            btnCloseForm.Font = new Font("Microsoft Sans Serif", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btnCloseForm.ForeColor = SystemColors.ControlLightLight;
+            btnCloseForm.Location = new Point(842, 0);
+            btnCloseForm.Margin = new Padding(4, 5, 4, 5);
+            btnCloseForm.Name = "btnCloseForm";
+            btnCloseForm.Size = new Size(64, 43);
+            btnCloseForm.TabIndex = 19;
+            btnCloseForm.Text = "X";
+            btnCloseForm.UseVisualStyleBackColor = false;
+            btnCloseForm.Click += btnCloseFormClick;
+            btnCloseForm.MouseEnter += Button1MouseEnter;
+            btnCloseForm.MouseLeave += Button1MouseLeave;
+            btnCloseForm.MouseHover += Button1MouseHover;
             // 
             // label5
             // 
-            this.label5.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.label5.BackColor = System.Drawing.Color.DodgerBlue;
-            this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
-            this.label5.ForeColor = System.Drawing.SystemColors.ControlLightLight;
-            this.label5.Location = new System.Drawing.Point(1, 1);
-            this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(779, 32);
-            this.label5.TabIndex = 20;
-            this.label5.Text = "Server to Client";
-            this.label5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.label5.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Label5MouseDown);
-            this.label5.MouseMove += new System.Windows.Forms.MouseEventHandler(this.Label5MouseMove);
-            this.label5.MouseUp += new System.Windows.Forms.MouseEventHandler(this.Label5MouseUp);
+            label5.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            label5.BackColor = Color.DodgerBlue;
+            label5.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label5.ForeColor = SystemColors.ControlLightLight;
+            label5.Location = new Point(1, 1);
+            label5.Margin = new Padding(4, 0, 4, 0);
+            label5.Name = "label5";
+            label5.Size = new Size(779, 40);
+            label5.TabIndex = 20;
+            label5.Text = "Client controller vice versa";
+            label5.TextAlign = ContentAlignment.MiddleCenter;
+            label5.MouseDown += Label5MouseDown;
+            label5.MouseMove += Label5MouseMove;
+            label5.MouseUp += Label5MouseUp;
             // 
             // panel1
             // 
-            this.panel1.BackColor = System.Drawing.Color.Silver;
-            this.panel1.Location = new System.Drawing.Point(-1, 34);
-            this.panel1.Margin = new System.Windows.Forms.Padding(0);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1, 383);
-            this.panel1.TabIndex = 21;
+            panel1.BackColor = Color.Silver;
+            panel1.Location = new Point(-1, 42);
+            panel1.Margin = new Padding(0);
+            panel1.Name = "panel1";
+            panel1.Size = new Size(1, 479);
+            panel1.TabIndex = 21;
             // 
             // panel4
             // 
-            this.panel4.BackColor = System.Drawing.Color.Silver;
-            this.panel4.Location = new System.Drawing.Point(0, 37);
-            this.panel4.Margin = new System.Windows.Forms.Padding(0);
-            this.panel4.Name = "panel4";
-            this.panel4.Size = new System.Drawing.Size(1, 423);
-            this.panel4.TabIndex = 23;
+            panel4.BackColor = Color.Silver;
+            panel4.Location = new Point(0, 46);
+            panel4.Margin = new Padding(0);
+            panel4.Name = "panel4";
+            panel4.Size = new Size(1, 529);
+            panel4.TabIndex = 23;
             // 
             // labelSerialTX
             // 
-            this.labelSerialTX.BackColor = System.Drawing.SystemColors.ControlLightLight;
-            this.labelSerialTX.Location = new System.Drawing.Point(117, 283);
-            this.labelSerialTX.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.labelSerialTX.Name = "labelSerialTX";
-            this.labelSerialTX.Size = new System.Drawing.Size(120, 28);
-            this.labelSerialTX.TabIndex = 24;
-            this.labelSerialTX.Text = "0";
-            this.labelSerialTX.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            labelSerialTX.BackColor = SystemColors.ControlLightLight;
+            labelSerialTX.Location = new Point(117, 354);
+            labelSerialTX.Margin = new Padding(4, 0, 4, 0);
+            labelSerialTX.Name = "labelSerialTX";
+            labelSerialTX.Size = new Size(120, 35);
+            labelSerialTX.TabIndex = 24;
+            labelSerialTX.Text = "0";
+            labelSerialTX.TextAlign = ContentAlignment.MiddleRight;
             // 
             // labelRxSerial
             // 
-            this.labelRxSerial.BackColor = System.Drawing.SystemColors.ControlLightLight;
-            this.labelRxSerial.Location = new System.Drawing.Point(553, 282);
-            this.labelRxSerial.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.labelRxSerial.Name = "labelRxSerial";
-            this.labelRxSerial.Size = new System.Drawing.Size(121, 28);
-            this.labelRxSerial.TabIndex = 25;
-            this.labelRxSerial.Text = "0";
-            this.labelRxSerial.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            labelRxSerial.BackColor = SystemColors.ControlLightLight;
+            labelRxSerial.Location = new Point(553, 352);
+            labelRxSerial.Margin = new Padding(4, 0, 4, 0);
+            labelRxSerial.Name = "labelRxSerial";
+            labelRxSerial.Size = new Size(121, 35);
+            labelRxSerial.TabIndex = 25;
+            labelRxSerial.Text = "0";
+            labelRxSerial.TextAlign = ContentAlignment.MiddleRight;
             // 
             // label6
             // 
-            this.label6.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
-            this.label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
-            this.label6.Location = new System.Drawing.Point(16, 283);
-            this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(88, 28);
-            this.label6.TabIndex = 26;
-            this.label6.Text = "SerTX:";
+            label6.BackColor = Color.FromArgb(224, 224, 224);
+            label6.Font = new Font("Microsoft Sans Serif", 10F);
+            label6.Location = new Point(16, 354);
+            label6.Margin = new Padding(4, 0, 4, 0);
+            label6.Name = "label6";
+            label6.Size = new Size(88, 35);
+            label6.TabIndex = 26;
+            label6.Text = "SerTX:";
             // 
             // label7
             // 
-            this.label7.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
-            this.label7.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
-            this.label7.Location = new System.Drawing.Point(463, 283);
-            this.label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(83, 28);
-            this.label7.TabIndex = 27;
-            this.label7.Text = "SerRX:";
+            label7.BackColor = Color.FromArgb(224, 224, 224);
+            label7.Font = new Font("Microsoft Sans Serif", 10F);
+            label7.Location = new Point(463, 354);
+            label7.Margin = new Padding(4, 0, 4, 0);
+            label7.Name = "label7";
+            label7.Size = new Size(83, 35);
+            label7.TabIndex = 27;
+            label7.Text = "SerRX:";
             // 
             // buttonMinimize
             // 
-            this.buttonMinimize.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.buttonMinimize.BackColor = System.Drawing.Color.DodgerBlue;
-            this.buttonMinimize.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.buttonMinimize.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F);
-            this.buttonMinimize.ForeColor = System.Drawing.SystemColors.ControlLightLight;
-            this.buttonMinimize.Location = new System.Drawing.Point(781, 1);
-            this.buttonMinimize.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.buttonMinimize.Name = "buttonMinimize";
-            this.buttonMinimize.Size = new System.Drawing.Size(64, 32);
-            this.buttonMinimize.TabIndex = 28;
-            this.buttonMinimize.Text = "_";
-            this.buttonMinimize.UseVisualStyleBackColor = false;
-            this.buttonMinimize.Click += new System.EventHandler(this.ButtonMinimizeClick);
+            buttonMinimize.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            buttonMinimize.BackColor = Color.DodgerBlue;
+            buttonMinimize.FlatStyle = FlatStyle.Flat;
+            buttonMinimize.Font = new Font("Microsoft Sans Serif", 10.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            buttonMinimize.ForeColor = SystemColors.ControlLightLight;
+            buttonMinimize.Location = new Point(779, 0);
+            buttonMinimize.Margin = new Padding(4, 5, 4, 5);
+            buttonMinimize.Name = "buttonMinimize";
+            buttonMinimize.Size = new Size(64, 43);
+            buttonMinimize.TabIndex = 28;
+            buttonMinimize.Text = "_";
+            buttonMinimize.UseVisualStyleBackColor = false;
+            buttonMinimize.Click += ButtonMinimizeClick;
             // 
             // panel5
             // 
-            this.panel5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.panel5.BackColor = System.Drawing.SystemColors.ControlLight;
-            this.panel5.Location = new System.Drawing.Point(288, 641);
-            this.panel5.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.panel5.Name = "panel5";
-            this.panel5.Size = new System.Drawing.Size(41, 37);
-            this.panel5.TabIndex = 29;
+            panel5.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            panel5.BackColor = SystemColors.ControlLight;
+            panel5.Location = new Point(288, 801);
+            panel5.Margin = new Padding(4, 5, 4, 5);
+            panel5.Name = "panel5";
+            panel5.Size = new Size(41, 46);
+            panel5.TabIndex = 29;
             // 
             // tbClientPort
             // 
-            this.tbClientPort.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbClientPort.Location = new System.Drawing.Point(139, 166);
-            this.tbClientPort.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.tbClientPort.Name = "tbClientPort";
-            this.tbClientPort.Size = new System.Drawing.Size(213, 30);
-            this.tbClientPort.TabIndex = 3;
+            tbClientPort.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            tbClientPort.Location = new Point(142, 215);
+            tbClientPort.Margin = new Padding(4, 5, 4, 5);
+            tbClientPort.Name = "tbClientPort";
+            tbClientPort.Size = new Size(213, 30);
+            tbClientPort.TabIndex = 3;
             // 
-            // tbMoxaHost
+            // tbVesy31ip
             // 
-            this.tbMoxaHost.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbMoxaHost.Location = new System.Drawing.Point(139, 48);
-            this.tbMoxaHost.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.tbMoxaHost.Name = "tbMoxaHost";
-            this.tbMoxaHost.Size = new System.Drawing.Size(213, 30);
-            this.tbMoxaHost.TabIndex = 30;
+            tbVesy31ip.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            tbVesy31ip.Location = new Point(142, 67);
+            tbVesy31ip.Margin = new Padding(4, 5, 4, 5);
+            tbVesy31ip.Name = "tbVesy31ip";
+            tbVesy31ip.Size = new Size(213, 30);
+            tbVesy31ip.TabIndex = 30;
             // 
-            // tbMoxaPort
+            // tbVesy31port
             // 
-            this.tbMoxaPort.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbMoxaPort.Location = new System.Drawing.Point(139, 87);
-            this.tbMoxaPort.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.tbMoxaPort.Name = "tbMoxaPort";
-            this.tbMoxaPort.Size = new System.Drawing.Size(213, 30);
-            this.tbMoxaPort.TabIndex = 31;
+            tbVesy31port.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            tbVesy31port.Location = new Point(142, 116);
+            tbVesy31port.Margin = new Padding(4, 5, 4, 5);
+            tbVesy31port.Name = "tbVesy31port";
+            tbVesy31port.Size = new Size(213, 30);
+            tbVesy31port.TabIndex = 31;
             // 
             // tbClientHost
             // 
-            this.tbClientHost.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbClientHost.Location = new System.Drawing.Point(139, 127);
-            this.tbClientHost.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.tbClientHost.Name = "tbClientHost";
-            this.tbClientHost.Size = new System.Drawing.Size(213, 30);
-            this.tbClientHost.TabIndex = 32;
+            tbClientHost.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            tbClientHost.Location = new Point(142, 166);
+            tbClientHost.Margin = new Padding(4, 5, 4, 5);
+            tbClientHost.Name = "tbClientHost";
+            tbClientHost.Size = new Size(213, 30);
+            tbClientHost.TabIndex = 32;
             // 
             // contextMenuStrip1
             // 
-            this.contextMenuStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
-            this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(61, 4);
+            contextMenuStrip1.ImageScalingSize = new Size(20, 20);
+            contextMenuStrip1.Name = "contextMenuStrip1";
+            contextMenuStrip1.Size = new Size(61, 4);
             // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
-            this.ClientSize = new System.Drawing.Size(909, 687);
-            this.Controls.Add(this.tbClientHost);
-            this.Controls.Add(this.tbMoxaPort);
-            this.Controls.Add(this.tbMoxaHost);
-            this.Controls.Add(this.panel5);
-            this.Controls.Add(this.buttonMinimize);
-            this.Controls.Add(this.label7);
-            this.Controls.Add(this.label6);
-            this.Controls.Add(this.labelRxSerial);
-            this.Controls.Add(this.labelSerialTX);
-            this.Controls.Add(this.panel4);
-            this.Controls.Add(this.panel1);
-            this.Controls.Add(this.btnCloseForm);
-            this.Controls.Add(this.buttonClearLog);
-            this.Controls.Add(this.buttonRefresh);
-            this.Controls.Add(this.listBoxInfoTrace);
-            this.Controls.Add(this.buttonStop);
-            this.Controls.Add(this.label3);
-            this.Controls.Add(this.buttonStart);
-            this.Controls.Add(this.labelRemoteHost);
-            this.Controls.Add(this.tbClientPort);
-            this.Controls.Add(this.label2);
-            this.Controls.Add(this.label1);
-            this.Controls.Add(this.label5);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
-            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.Name = "MainForm";
-            this.Text = "ARM to moxa bidi";
-            this.Activated += new System.EventHandler(this.MainFormActivated);
-            this.Deactivate += new System.EventHandler(this.MainFormDeactivate);
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainFormFormClosing);
-            this.Load += new System.EventHandler(this.MainFormLoad);
-            this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.MainFormMouseDown);
-            this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.Form_MouseMove);
-            this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.Form_MouseUp);
-            this.ResumeLayout(false);
-            this.PerformLayout();
-
+            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Color.FromArgb(224, 224, 224);
+            ClientSize = new Size(909, 859);
+            Controls.Add(tbClientHost);
+            Controls.Add(tbVesy31port);
+            Controls.Add(tbVesy31ip);
+            Controls.Add(panel5);
+            Controls.Add(buttonMinimize);
+            Controls.Add(label7);
+            Controls.Add(label6);
+            Controls.Add(labelRxSerial);
+            Controls.Add(labelSerialTX);
+            Controls.Add(panel4);
+            Controls.Add(panel1);
+            Controls.Add(btnCloseForm);
+            Controls.Add(buttonClearLog);
+            Controls.Add(buttonRefresh);
+            Controls.Add(listBoxInfoTrace);
+            Controls.Add(buttonStop);
+            Controls.Add(label3);
+            Controls.Add(buttonStart);
+            Controls.Add(labelRemoteHost);
+            Controls.Add(tbClientPort);
+            Controls.Add(label2);
+            Controls.Add(label1);
+            Controls.Add(label5);
+            FormBorderStyle = FormBorderStyle.None;
+            Margin = new Padding(4, 5, 4, 5);
+            Name = "MainForm";
+            Text = "ARM to moxa bidi";
+            Activated += MainFormActivated;
+            Deactivate += MainFormDeactivate;
+            FormClosing += MainFormFormClosing;
+            Load += MainFormLoad;
+            MouseDown += MainFormMouseDown;
+            MouseMove += Form_MouseMove;
+            MouseUp += Form_MouseUp;
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         private void RadioButtonServerCheckedChanged(object sender, EventArgs e)
