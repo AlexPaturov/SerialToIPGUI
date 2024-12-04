@@ -17,6 +17,8 @@ namespace serialtoip
         const double balanceKoeff = -5.24;          // корректирующий коэффициент
         const double fromMetersToSantim = 100;      // для перевода из сантиметров в миллиметры
         #endregion
+        private static readonly log4net.ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
 
         // Получить результат статического взвешивания.
         public static byte[] getStatic(byte[] bInput)
@@ -434,7 +436,16 @@ namespace serialtoip
             if (!double.TryParse(v34, out double v34Double))
                 throw new ArgumentException("Invalid value for 34. It must be a valid number.", nameof(v34));
 
-            var deltaDouble = balanceKoeff * ((((v12Double - v34Double) / massDouble) * distanceBetweenRails) * fromMetersToSantim);
+            double deltaDouble = 0;
+            try
+            {
+                deltaDouble = balanceKoeff * ((((v12Double - v34Double) / massDouble) * distanceBetweenRails) * fromMetersToSantim);
+            }
+            catch (Exception ex) 
+            {   // ловлю ошибку, 
+                logger.Error(ex.Message);
+                return "0";
+            }
 
             return deltaDouble.ToString("0", System.Globalization.CultureInfo.InvariantCulture); // округляем до целого
         }

@@ -415,7 +415,7 @@ namespace SerialToIpGUI
             // 
             label1.BackColor = Color.FromArgb(224, 224, 224);
             label1.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label1.Location = new Point(16, 62);
+            label1.Location = new Point(16, 46);
             label1.Margin = new Padding(4, 0, 4, 0);
             label1.Name = "label1";
             label1.Size = new Size(120, 32);
@@ -427,7 +427,7 @@ namespace SerialToIpGUI
             // 
             label2.BackColor = Color.FromArgb(224, 224, 224);
             label2.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label2.Location = new Point(16, 212);
+            label2.Location = new Point(521, 81);
             label2.Margin = new Padding(4, 0, 4, 0);
             label2.Name = "label2";
             label2.Size = new Size(120, 32);
@@ -439,7 +439,7 @@ namespace SerialToIpGUI
             // 
             labelRemoteHost.BackColor = Color.FromArgb(224, 224, 224);
             labelRemoteHost.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelRemoteHost.Location = new Point(16, 162);
+            labelRemoteHost.Location = new Point(521, 45);
             labelRemoteHost.Margin = new Padding(4, 0, 4, 0);
             labelRemoteHost.Name = "labelRemoteHost";
             labelRemoteHost.Size = new Size(120, 32);
@@ -453,7 +453,7 @@ namespace SerialToIpGUI
             buttonStart.BackColor = SystemColors.Control;
             buttonStart.FlatStyle = FlatStyle.Flat;
             buttonStart.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            buttonStart.Location = new Point(112, 802);
+            buttonStart.Location = new Point(112, 413);
             buttonStart.Margin = new Padding(4, 5, 4, 5);
             buttonStart.Name = "buttonStart";
             buttonStart.Size = new Size(171, 46);
@@ -466,7 +466,7 @@ namespace SerialToIpGUI
             // 
             label3.BackColor = Color.FromArgb(224, 224, 224);
             label3.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label3.Location = new Point(16, 114);
+            label3.Location = new Point(16, 84);
             label3.Margin = new Padding(4, 0, 4, 0);
             label3.Name = "label3";
             label3.Size = new Size(120, 32);
@@ -480,7 +480,7 @@ namespace SerialToIpGUI
             buttonStop.Enabled = false;
             buttonStop.FlatStyle = FlatStyle.Flat;
             buttonStop.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            buttonStop.Location = new Point(333, 802);
+            buttonStop.Location = new Point(333, 413);
             buttonStop.Margin = new Padding(4, 5, 4, 5);
             buttonStop.Name = "buttonStop";
             buttonStop.Size = new Size(127, 46);
@@ -496,18 +496,18 @@ namespace SerialToIpGUI
             listBoxInfoTrace.FormattingEnabled = true;
             listBoxInfoTrace.HorizontalScrollbar = true;
             listBoxInfoTrace.ItemHeight = 16;
-            listBoxInfoTrace.Location = new Point(16, 398);
+            listBoxInfoTrace.Location = new Point(16, 176);
             listBoxInfoTrace.Margin = new Padding(4, 5, 4, 5);
             listBoxInfoTrace.Name = "listBoxInfoTrace";
             listBoxInfoTrace.ScrollAlwaysVisible = true;
-            listBoxInfoTrace.Size = new Size(875, 372);
+            listBoxInfoTrace.Size = new Size(875, 212);
             listBoxInfoTrace.TabIndex = 13;
             // 
             // buttonRefresh
             // 
             buttonRefresh.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
             buttonRefresh.FlatStyle = FlatStyle.Flat;
-            buttonRefresh.Location = new Point(806, 802);
+            buttonRefresh.Location = new Point(806, 413);
             buttonRefresh.Margin = new Padding(4, 5, 4, 5);
             buttonRefresh.Name = "buttonRefresh";
             buttonRefresh.Size = new Size(85, 46);
@@ -521,7 +521,7 @@ namespace SerialToIpGUI
             buttonClearLog.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             buttonClearLog.FlatStyle = FlatStyle.Flat;
             buttonClearLog.Font = new Font("Microsoft Sans Serif", 11F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            buttonClearLog.Location = new Point(23, 802);
+            buttonClearLog.Location = new Point(23, 413);
             buttonClearLog.Margin = new Padding(4, 5, 4, 5);
             buttonClearLog.Name = "buttonClearLog";
             buttonClearLog.Size = new Size(83, 46);
@@ -587,7 +587,7 @@ namespace SerialToIpGUI
             // labelSerialTX
             // 
             labelSerialTX.BackColor = SystemColors.ControlLightLight;
-            labelSerialTX.Location = new Point(117, 354);
+            labelSerialTX.Location = new Point(235, 124);
             labelSerialTX.Margin = new Padding(4, 0, 4, 0);
             labelSerialTX.Name = "labelSerialTX";
             labelSerialTX.Size = new Size(120, 35);
@@ -598,7 +598,7 @@ namespace SerialToIpGUI
             // labelRxSerial
             // 
             labelRxSerial.BackColor = SystemColors.ControlLightLight;
-            labelRxSerial.Location = new Point(553, 352);
+            labelRxSerial.Location = new Point(671, 122);
             labelRxSerial.Margin = new Padding(4, 0, 4, 0);
             labelRxSerial.Name = "labelRxSerial";
             labelRxSerial.Size = new Size(121, 35);
@@ -610,7 +610,7 @@ namespace SerialToIpGUI
             // 
             label6.BackColor = Color.FromArgb(224, 224, 224);
             label6.Font = new Font("Microsoft Sans Serif", 10F);
-            label6.Location = new Point(16, 354);
+            label6.Location = new Point(142, 124);
             label6.Margin = new Padding(4, 0, 4, 0);
             label6.Name = "label6";
             label6.Size = new Size(88, 35);
@@ -621,10 +621,10 @@ namespace SerialToIpGUI
             // 
             label7.BackColor = Color.FromArgb(224, 224, 224);
             label7.Font = new Font("Microsoft Sans Serif", 10F);
-            label7.Location = new Point(463, 354);
+            label7.Location = new Point(581, 124);
             label7.Margin = new Padding(4, 0, 4, 0);
             label7.Name = "label7";
-            label7.Size = new Size(83, 35);
+            label7.Size = new Size(83, 33);
             label7.TabIndex = 27;
             label7.Text = "SerRX:";
             // 
@@ -648,7 +648,7 @@ namespace SerialToIpGUI
             // 
             panel5.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             panel5.BackColor = SystemColors.ControlLight;
-            panel5.Location = new Point(288, 801);
+            panel5.Location = new Point(288, 412);
             panel5.Margin = new Padding(4, 5, 4, 5);
             panel5.Name = "panel5";
             panel5.Size = new Size(41, 46);
@@ -657,7 +657,7 @@ namespace SerialToIpGUI
             // tbClientPort
             // 
             tbClientPort.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            tbClientPort.Location = new Point(142, 215);
+            tbClientPort.Location = new Point(647, 84);
             tbClientPort.Margin = new Padding(4, 5, 4, 5);
             tbClientPort.Name = "tbClientPort";
             tbClientPort.Size = new Size(213, 30);
@@ -666,7 +666,7 @@ namespace SerialToIpGUI
             // tbVesy31ip
             // 
             tbVesy31ip.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            tbVesy31ip.Location = new Point(142, 67);
+            tbVesy31ip.Location = new Point(142, 51);
             tbVesy31ip.Margin = new Padding(4, 5, 4, 5);
             tbVesy31ip.Name = "tbVesy31ip";
             tbVesy31ip.Size = new Size(213, 30);
@@ -675,7 +675,7 @@ namespace SerialToIpGUI
             // tbVesy31port
             // 
             tbVesy31port.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            tbVesy31port.Location = new Point(142, 116);
+            tbVesy31port.Location = new Point(142, 86);
             tbVesy31port.Margin = new Padding(4, 5, 4, 5);
             tbVesy31port.Name = "tbVesy31port";
             tbVesy31port.Size = new Size(213, 30);
@@ -684,7 +684,7 @@ namespace SerialToIpGUI
             // tbClientHost
             // 
             tbClientHost.Font = new Font("Microsoft Sans Serif", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            tbClientHost.Location = new Point(142, 166);
+            tbClientHost.Location = new Point(647, 49);
             tbClientHost.Margin = new Padding(4, 5, 4, 5);
             tbClientHost.Name = "tbClientHost";
             tbClientHost.Size = new Size(213, 30);
@@ -701,7 +701,7 @@ namespace SerialToIpGUI
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(224, 224, 224);
-            ClientSize = new Size(909, 859);
+            ClientSize = new Size(909, 472);
             Controls.Add(tbClientHost);
             Controls.Add(tbVesy31port);
             Controls.Add(tbVesy31ip);
