@@ -8,11 +8,12 @@ namespace serialtoip;
 public class UdpDecoder
 {
     private readonly UdpReceiveResult _result;
-    private readonly string _codeType; // тип кодировки для управления режимами перекодирования hex
-    private bool _wasError = false;
-    private Dictionary<string, string> _setOfValues = new Dictionary<string, string>();
+    private readonly string _codeType;                                                          // тип кодировки для управления режимами перекодирования hex (little indian / big indian)
+    private bool _wasError = false;                                                             // флаг появления ошибки при разборе строки
+    private Dictionary<string, string> _setOfValues = new Dictionary<string, string>();         // набор ответа от контроллера в числовом представлении
     public ControllerMessage controllerMessage { get; private set; } = new ControllerMessage();
 
+    #region UdpDecoder(UdpReceiveResult result, string codeType = "") конструктор, и вызов методов обработки входящей строки по цепочке
     public UdpDecoder(UdpReceiveResult result, string codeType = "")
     {
         _result = result;
@@ -24,7 +25,7 @@ public class UdpDecoder
             hexDataString = DeletePkBegPkEndSymbols(hexDataString); // Обрезал символы начала и окончания пакета
             if (_wasError == false)
             {
-                _setOfValues = HexStringToHexBlocks(hexDataString);
+                _setOfValues = HexStringToHexBlocks(hexDataString); // Нарезал по блокам HEX 4 пары, для перекодировки в double
                 if (_wasError == false)
                 {
                     HexBlockToSingle(_setOfValues); // перкодировал из набора hex блоков в single
@@ -32,6 +33,7 @@ public class UdpDecoder
             }
         }
     }
+    #endregion
 
     #region BitConvertToHexString(UdpReceiveResult result)
     private string BitConvertToHexString(UdpReceiveResult result)
@@ -48,7 +50,8 @@ public class UdpDecoder
         }
     }
     #endregion
-    #region Обрезал символы начала и окончания пакета DeletePkBegPkEndSymbols(string rawString)
+    
+    #region DeletePkBegPkEndSymbols(string rawString) Обрезал символы начала и окончания пакета 
     private string DeletePkBegPkEndSymbols(string rawString)
     {
         try
@@ -63,7 +66,8 @@ public class UdpDecoder
         }
     }
     #endregion
-    #region Перевёл из строки в блоки данных для последующего декодирования HexStringToHexBlocks(string message)
+    
+    #region HexStringToHexBlocks(string message) Перевёл из строки в блоки данных для последующего декодирования 
     private Dictionary<string, string> HexStringToHexBlocks(string message)
     {
         Dictionary<string, string> resultDict = new Dictionary<string, string>();
@@ -129,6 +133,7 @@ public class UdpDecoder
         return resultDict;
     }
     #endregion
+
     #region HexStringToHexBlocks -> для тестов подсчёта дельты и конвертации HEX кода - закомичено
     //private Dictionary<string, string> HexStringToHexBlocks(string message)
     //{
@@ -139,7 +144,7 @@ public class UdpDecoder
     //        resultDict.Add("value01", message.Substring(0, 11));
     //        message = message.Substring(12);
     //        #endregion
-    //        resultDict.Add("value02", "66 E6 B4 42"); // brutto
+    //        resultDict.Add("value02", "00 00 00 00"); // brutto
     //        message = message.Substring(12);
     //        #region нагрузки по датчикам - 8 штук (не используется)
     //        resultDict.Add("value03", message.Substring(0, 11));
@@ -177,13 +182,13 @@ public class UdpDecoder
     //        resultDict.Add("value18", message.Substring(0, 11));
     //        message = message.Substring(12);
     //        #endregion
-    //        resultDict.Add("value19", "71 3D 35 42"); // v13
+    //        resultDict.Add("value19", "00 00 00 00"); // v13
     //        message = message.Substring(12);
-    //        resultDict.Add("value20", "D7 A3 34 42"); // v24
+    //        resultDict.Add("value20", "00 00 00 00"); // v24
     //        message = message.Substring(12);
-    //        resultDict.Add("value21", "66 66 37 42"); // v12
+    //        resultDict.Add("value21", "00 00 00 00"); // v12
     //        message = message.Substring(12);
-    //        resultDict.Add("value22", "66 66 32 42"); // v34
+    //        resultDict.Add("value22", "00 00 00 00"); // v34
     //        message = string.Empty;
     //    }
     //    catch (Exception ex)
@@ -193,9 +198,9 @@ public class UdpDecoder
     //    }
     //    return resultDict;
     //}
-    //#endregion
     #endregion
-    #region Преобразую HEX блоки в single HexBlockToSingle(Dictionary<string, string> massValue)
+
+    #region HexBlockToSingle(Dictionary<string, string> massValue) Преобразую HEX блоки в single 
     private bool HexBlockToSingle(Dictionary<string, string> massValue)
     {
         try
@@ -238,10 +243,12 @@ public class UdpDecoder
     }
     #endregion
 
+    #region GetPreparedMessage() return ControllerMessage
     public ControllerMessage GetPreparedMessage()
     {
         controllerMessage.setOfValues = new Dictionary<string, string>(_setOfValues);
         controllerMessage.wasError = _wasError;
         return controllerMessage;
     }
+    #endregion
 }

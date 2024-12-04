@@ -5,22 +5,21 @@ using System.Text;
 using System.Xml;
 
 /*
-    Привожу полученные от контроллера данные к требуемому по спецификации формату, для ответа АРМ(у) весов.
+    Привожу полученные от контроллера данные к требуемому по спецификации формату.
  */
 
 namespace serialtoip
 {
     public static class XMLFormatter
     {
-        #region Для подсчёта дельты
+        #region Для подсчёта дельты 
         const double distanceBetweenRails = 1.52;   // расстояние между рельсами
-        const double balanceKoeff = -5.24;          // корректирующий коэффициент
+        const double balanceKoeff = -5.24;          // корректирующий коэффициент для весов N 31
         const double fromMetersToSantim = 100;      // для перевода из сантиметров в миллиметры
         #endregion
         private static readonly log4net.ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-
-        // Получить результат статического взвешивания.
+        #region byte[] getStatic(byte[] bInput) Получить результат статического взвешивания - для весов N 10
         public static byte[] getStatic(byte[] bInput)
         {
             if (bInput != null)
@@ -151,8 +150,9 @@ namespace serialtoip
                 throw new Exception("Answer from device is incorrect. getStatic input == null");
             }
         }
+        #endregion
 
-        #region Получить результат статического взвешивания Для весов N 31
+        #region byte[] getStatic(Dictionary<string, string> inputDict) Для весов N 31
         public static byte[] getStatic(Dictionary<string, string> inputDict)
         {
             Dictionary<string, string> preparedAnswer = RawToXML(inputDict);
@@ -274,11 +274,12 @@ namespace serialtoip
             ch3_Type.InnerText = "V";
             ch2_StaticData.AppendChild(ch3_Type);
 
+            logger.Debug(xmlDoc.OuterXml); // после отладки удалить (?)
             return Encoding.GetEncoding(1251).GetBytes(xmlDoc.OuterXml);
         }
         #endregion
 
-        // Получаю стандартный Exception и код по спецификации, возвращаю ошибку в установленном спецификацией формате XML.
+        #region GetError(Exception ex, int code) Получаю стандартный Exception и код по спецификации
         public static byte[] GetError(Exception ex, int code)
         {
             XmlDocument xmlDoc = new XmlDocument();
@@ -304,8 +305,9 @@ namespace serialtoip
 
             return Encoding.GetEncoding(1251).GetBytes(xmlDoc.OuterXml);
         }
+        #endregion
 
-        // Разбор входной строки и приведение данных к формату в соответствии со спецификацией.
+        #region RawToXML(string input) Разбор входной строки и приведение данных к формату в соответствии со спецификацией.
         private static Dictionary<string, string> RawToXML(string input)
         {
             Dictionary<string, string> XMLtmp = new Dictionary<string, string>();
@@ -352,8 +354,9 @@ namespace serialtoip
 
             return XMLtmp;
         }
+        #endregion
 
-        #region RawToXML() for vesy31
+        #region RawToXML() с подсчётом дельты (коэффициент корректировки забит константой для 31-х весов)
         private static Dictionary<string, string> RawToXML(Dictionary<string, string> inpDictOfDoublle)
         {
             Dictionary<string, string> forXMLtmp = new Dictionary<string, string>();
@@ -374,7 +377,7 @@ namespace serialtoip
         }
         #endregion
 
-        // Перевожу тонны в киллограммы, возвращаю в строковом представлении.
+        #region TonnsToKilos(string inputTonns) Перевожу тонны в киллограммы, возвращаю в строковом представлении.
         private static string TonnsToKilos(string inputTonns)
         {
             if (!string.IsNullOrEmpty(inputTonns))
@@ -391,8 +394,9 @@ namespace serialtoip
                 throw new Exception("Mass value is incorrect.");
             }
         }
+        #endregion
 
-        // получаю разность 2-х чисел
+        #region GetDiffer(string v1, string v2) получаю разность 2-х чисел -> возвращаю строку
         private static string GetDiffer(string v1, string v2)
         {
             try
@@ -423,8 +427,9 @@ namespace serialtoip
                 throw new Exception($"{ex.Message}");
             }
         }
+        #endregion
 
-        // получаю дельту с коэффициентом корректировки
+        #region GetDelta(string mass, string v12, string v34) получаю дельту с учётом коэффициента корректировки
         private static string GetDelta(string mass, string v12, string v34)
         {
             if (!double.TryParse(mass, out double massDouble))
@@ -439,7 +444,8 @@ namespace serialtoip
             double deltaDouble = 0;
             try
             {
-                deltaDouble = balanceKoeff * ((((v12Double - v34Double) / massDouble) * distanceBetweenRails) * fromMetersToSantim);
+                if(massDouble > 0) // иначе летит NAN
+                    deltaDouble = balanceKoeff * ((((v12Double - v34Double) / massDouble) * distanceBetweenRails) * fromMetersToSantim);
             }
             catch (Exception ex) 
             {   // ловлю ошибку, 
@@ -449,5 +455,6 @@ namespace serialtoip
 
             return deltaDouble.ToString("0", System.Globalization.CultureInfo.InvariantCulture); // округляем до целого
         }
+        #endregion
     }
 }
