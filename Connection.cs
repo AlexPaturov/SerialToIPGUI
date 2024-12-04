@@ -8,6 +8,13 @@ using System.Threading.Tasks;
 
 namespace serialtoip
 {
+    internal enum ControllerCommand 
+    {
+        GetWeight,
+        SetZero = 1,
+        Reboot = 2
+    }
+
     public class Connection
     {
         private CrossThreadComm.TraceCb _conInfoCallback;
@@ -127,7 +134,7 @@ namespace serialtoip
                 
                 try
                 {
-                    // добавить udp клиента 
+                    // при 1-м входе
                     _udpCts = new CancellationTokenSource();
                     _udpServer = new UdpClient(Int32.Parse(_d["vesy31port"]));
                 }
@@ -138,10 +145,10 @@ namespace serialtoip
                     
                     if (ARMsocket.Connected)
                     {
-                        // ПРОВЕРИТЬ ДОСТУПНОСТЬ ХОСТА - ЕСЛИ НЕ ДОСТУПЕН - СФОРМИРОВАТЬ СООБЩЕНИЕ СОГЛАСНО ФОРМАТУ В ТЕХ ТРЕБОВАНИЯХ
+                        // ПРОВЕРИТЬ ДОСТУПНОСТЬ контроллера  - ЕСЛИ НЕ ДОСТУПЕН - СФОРМИРОВАТЬ СООБЩЕНИЕ СОГЛАСНО ФОРМАТУ В ТЕХ ТРЕБОВАНИЯХ
                         ARMsocket.Close();
                     }
-                    // throw ex;
+                    throw;
                 }
 
                 // добавить udp клиента 
@@ -180,7 +187,6 @@ namespace serialtoip
                     System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
                     logger.Info("ARM query string: " + Encoding.GetEncoding(1251).GetString(ARMbyteArr));   // строка запроса прикладного ПО драйверу
 
-
                     byte[] controllerCommand = DecodeClientRequestToControllerCommand(buffer, colByteARM);  // Верну null если команда не корректная, иначе - команду для контроллера
                     if (controllerCommand != null)                                                          // команда корректна -> отправляем устройству
                     {
@@ -190,12 +196,26 @@ namespace serialtoip
                             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
                             if (Encoding.GetEncoding(1251).GetString(ARMbyteArr) != "<Request method='get_static'/>") 
                             {
-                                _udpServer.Send(controllerCommand, controllerCommand.Length, _epContr31);    // запрос драйвера контроллеру
+                                _udpServer.Send(controllerCommand, controllerCommand.Length, _epContr31);    // запрос от драйвера к контроллеру
                             }
-                            else
+
+                            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                            if (Encoding.GetEncoding(1251).GetString(ARMbyteArr) == "<Request method='get_static'/>")
                             {
                                 try
                                 {
+                                    #region Если ресурсы _udpCts, _udpServer  закрыты - возобновляю 
+                                    if (_udpCts is null) 
+                                    {
+                                        _udpCts = new CancellationTokenSource();
+                                    }
+
+                                    if (_udpServer is null)
+                                    {
+                                        _udpServer = new UdpClient(Int32.Parse(_d["vesy31port"]));
+                                    }
+                                    #endregion
+
                                     while (!_udpCts.Token.IsCancellationRequested)
                                     {
                                         // Use Task.Run to allow for cancellation checks
@@ -208,20 +228,37 @@ namespace serialtoip
                                             var result = receiveTask.Result;
                                             if ((result.Buffer is not null) && (result.Buffer.Length == 93))
                                             {
-                                                UdpDecoder resultOfValue = new UdpDecoder(result);
-                                                ControllerMessage mess = resultOfValue.GetControllerMessage();
-                                                if (mess.wasError == false)
+                                                UdpDecoder rawResultOfValue = new UdpDecoder(result);
+                                                ControllerMessage preparedMess = rawResultOfValue.GetPreparedMessage();
+
+                                                if (preparedMess.wasError == false)
                                                 {
-                                                    foreach (var item in mess.setOfValues)
+                                                    // подгатавливаю XML документ
+                                                    byte[] xmlByteValues = XMLFormatter.getStatic(preparedMess.setOfValues);
+
+
+                                                    string answer = string.Empty;
+                                                    foreach (var item in preparedMess.setOfValues)
                                                     {
                                                         // добавить заполнение объекта XML формата
                                                         // если данные принятые из udp корректные - возвращаю сообщение,
                                                         // нет - возвращаю сообщение об ошибке 
                                                         TraceLine($"{item.Value}\n");
-                                                        logger.Info($"{item.Value}\n"); // ответ драйвера прикладному ПО
+                                                        logger.Info($"{item.Value}");           // ответ драйвера прикладному ПО
+                                                        answer = $"{answer} {item.Value}\n";
+
                                                     }
-                                                    _udpCts.Cancel();       // сбрасываю токен 
-                                                    _udpServer.Close();     // 
+
+                                                    byte[] arr = Encoding.GetEncoding(1251).GetBytes($"{answer}");
+                                                    //ARMsocket.Send(arr, arr.Length, SocketFlags.None);        // Отправляем в АРМ весов XML в виде byte[].
+                                                    ARMsocket.Send(xmlByteValues, xmlByteValues.Length, SocketFlags.None);        // Отправляем в АРМ весов XML в виде byte[].
+                                                    _udpCts.Cancel();       // после однократной операции - останавливаю передачу
+                                                }
+                                                else 
+                                                {
+                                                    Exception exInner = new Exception("Ошибка формата документа");              // Согласно спецификации - ловить таймаут
+                                                    byte[] errorByteArr = XMLFormatter.GetError(exInner, 1);                    // Отформатировал ошибку в XML формат. 
+                                                    ARMsocket.Send(errorByteArr, errorByteArr.Length, SocketFlags.None);        // Отправляем в АРМ весов XML в виде byte[].
                                                 }
                                             }
 
@@ -234,7 +271,7 @@ namespace serialtoip
                                             TraceLine($"No data received within timeout period {DateTime.Now.ToString("HH:mm:ss.fff")}\n");
                                             logger.Info($"No data received within timeout period {DateTime.Now.ToString("HH:mm:ss.fff")}");
                                         }
-                                    }
+                                    } // else 
                                 }
                                 catch (OperationCanceledException ex)
                                 {
@@ -253,8 +290,11 @@ namespace serialtoip
                                 }
                                 finally
                                 {
+                                    _udpCts.Cancel();
                                     _udpServer.Dispose();
-                                    Console.WriteLine(".");
+                                    _udpCts = null;
+                                    _udpServer = null;
+
                                     TraceLine($"UDP server resources have been released \n");
                                     logger.Info($"UDP server resources have been released \n");
                                 }
@@ -310,7 +350,10 @@ namespace serialtoip
             {
                 TraceLine("Stopping UDP server..."); 
                 logger.Info("Stopping UDP server...");
-                _udpCts.Cancel();
+
+                if(_udpCts is not null)
+                    _udpCts.Cancel();
+
                 _udpServer.Close();
             }
 
@@ -340,7 +383,7 @@ namespace serialtoip
                     break;
 
                 case "<Request method='get_static'/>":                      // 3) получить вес, взвешивание в статике
-                    controllerCommand = "F#1" + "\r\n";
+                    controllerCommand = "getWeight";                        // пока заглушка, только чтоб не ломать общую архитектуру
                     break;
 
                 case "<Request method='set_zero' parameter='0'/>":          // 4)

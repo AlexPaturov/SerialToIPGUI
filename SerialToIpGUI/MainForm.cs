@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Configuration;
 using System.Drawing;
 using System.Globalization;
 using System.Net.Sockets;
@@ -22,7 +23,7 @@ namespace SerialToIpGUI
         protected object _traceListBoxLock = new object();
         private Dictionary<string, string> dn = new Dictionary<string, string>();
         private List<string> _items = new List<string>();
-        private CancellationTokenSource _udpCts;
+        private CancellationTokenSource _udpCts; 
         private UdpClient _udpServer;
         ServerMode sm = null;
         private bool _running = false;
@@ -67,12 +68,7 @@ namespace SerialToIpGUI
             
             try
             {
-                // добавить udp клиента 
-                //moxaTC = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
                 sm = new ServerMode();
-
-                // добавить udp клиента 
                 sm.Run(dn, 
                        _udpServer, 
                        _udpCts,  
@@ -94,9 +90,14 @@ namespace SerialToIpGUI
             _running = false;
             sm = null;
 
-            // добавить udp клиента 
-            //moxaTC = null;
+            if(_udpCts is not null)
+                _udpCts.Cancel();
+            _udpCts = null;
+
+            if(_udpServer is not null)
+                _udpServer.Close();
             _udpServer = null;
+
             thServiceThread = null;
         }
 
@@ -149,10 +150,17 @@ namespace SerialToIpGUI
             }
             sm = null;
 
-            // добавить udp клиента 
-            //moxaTC = null;
-            _udpServer = null;
+            #region работа с udp клиентом
+                if(_udpCts is not null)
+                    _udpCts.Cancel();
+
+                if(_udpServer is not null)
+                    _udpServer.Close();
             
+                _udpServer = null;
+                _udpCts = null;
+            #endregion
+
             this.panel5.BackColor = Color.Gray;
             this.buttonStop.Enabled = false;
             this.tbVesy31ip.Enabled = true;
@@ -257,10 +265,11 @@ namespace SerialToIpGUI
             MainForm._conInfoTrace = new CrossThreadComm.TraceCb(this.ConnInfoTrace);
             MainForm._updateState = new CrossThreadComm.UpdateState(this.UpdateState);
             MainForm._updRxTx = new CrossThreadComm.UpdateRXTX(this.UpdateRxTx);
-            dn.Add("clientHost", "127.0.0.1");
-            dn.Add("clientPort", "8888");
-            dn.Add("vesy31ip", "192.168.0.106"); // для контроллера 31-х весов
-            dn.Add("vesy31port", "10001");       // для контроллера 31-х весов
+            dn.Add("Vesy", ConfigurationManager.AppSettings["Vesy"]);                       // настройки для подключения к 
+            dn.Add("clientHost", ConfigurationManager.AppSettings["ArmAddress"]);
+            dn.Add("clientPort", ConfigurationManager.AppSettings["ArmPort"]);
+            dn.Add("vesy31ip", ConfigurationManager.AppSettings["ControllerAddress"]); // для контроллера 31-х весов
+            dn.Add("vesy31port", ConfigurationManager.AppSettings["ControllerPort"]);       // для контроллера 31-х весов
 
             ToolTip toolTip = new ToolTip();
             toolTip.AutoPopDelay = 5000;
