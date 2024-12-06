@@ -265,11 +265,12 @@ namespace SerialToIpGUI
             MainForm._conInfoTrace = new CrossThreadComm.TraceCb(this.ConnInfoTrace);
             MainForm._updateState = new CrossThreadComm.UpdateState(this.UpdateState);
             MainForm._updRxTx = new CrossThreadComm.UpdateRXTX(this.UpdateRxTx);
-            dn.Add("Vesy", ConfigurationManager.AppSettings["Vesy"]);                       // настройки для подключения к 
+            dn.Add("Vesy", ConfigurationManager.AppSettings["Vesy"]);                                       // ?
             dn.Add("clientHost", ConfigurationManager.AppSettings["ArmAddress"]);
             dn.Add("clientPort", ConfigurationManager.AppSettings["ArmPort"]);
-            dn.Add("vesy31ip", ConfigurationManager.AppSettings["ControllerAddress"]); // для контроллера 31-х весов
-            dn.Add("vesy31port", ConfigurationManager.AppSettings["ControllerPort"]);       // для контроллера 31-х весов
+            dn.Add("vesy31ip", ConfigurationManager.AppSettings["ControllerAddress"]);                      // для контроллера 31-х весов
+            dn.Add("vesy31port", ConfigurationManager.AppSettings["ControllerPort"]);                       // для контроллера 31-х весов
+            dn.Add("determiningTheEndian", ConfigurationManager.AppSettings["DeterminingTheEndian"]);       // определение порядка байтов
 
             ToolTip toolTip = new ToolTip();
             toolTip.AutoPopDelay = 5000;
