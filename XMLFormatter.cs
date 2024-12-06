@@ -6,13 +6,13 @@ using System.Xml;
 
 /*
     Привожу полученные от контроллера данные к требуемому по спецификации формату.
- */
+*/
 
 namespace serialtoip
 {
     public static class XMLFormatter
     {
-        #region Для подсчёта дельты 
+        #region Константы для подсчёта дельты 
         const double distanceBetweenRails = 1.52;   // расстояние между рельсами
         const double balanceKoeff = -5.24;          // корректирующий коэффициент для весов N 31
         const double fromMetersToSantim = 100;      // для перевода из сантиметров в миллиметры
