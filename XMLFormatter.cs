@@ -356,7 +356,7 @@ namespace serialtoip
         }
         #endregion
 
-        #region RawToXML() с подсчётом дельты (коэффициент корректировки забит константой для 31-х весов)
+        #region RawToXML(RawToXML(Dictionary<string, string> inpDictOfDoublle) с подсчётом дельты (коэффициент корректировки забит константой для 31-х весов)
         private static Dictionary<string, string> RawToXML(Dictionary<string, string> inpDictOfDoublle)
         {
             Dictionary<string, string> forXMLtmp = new Dictionary<string, string>();
@@ -439,7 +439,7 @@ namespace serialtoip
                 throw new ArgumentException("Invalid value for v12. It must be a valid number.", nameof(v12));
 
             if (!double.TryParse(v34, out double v34Double))
-                throw new ArgumentException("Invalid value for 34. It must be a valid number.", nameof(v34));
+                throw new ArgumentException("Invalid value for v34. It must be a valid number.", nameof(v34));
 
             double deltaDouble = 0;
             try
