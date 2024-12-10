@@ -7,6 +7,7 @@ namespace serialtoip;
 
 public class UdpDecoder
 {
+    private const string codeEndian = "LittleEndian";                                           // для управления направлением кодировки
     private readonly UdpReceiveResult _result;
     private readonly string _codeType;                                                          // тип кодировки для управления режимами перекодирования hex (little indian / big indian)
     private bool _wasError = false;                                                             // флаг появления ошибки при разборе строки
@@ -203,6 +204,7 @@ public class UdpDecoder
     #region HexBlockToSingle(Dictionary<string, string> massValue) Преобразую HEX блоки в single 
     private bool HexBlockToSingle(Dictionary<string, string> massValue)
     {
+        Dictionary<string, string> temp = new Dictionary<string, string>();
         try
         {
             foreach (var item in massValue)
@@ -210,18 +212,23 @@ public class UdpDecoder
                 byte[] bytes = HexStringToByteArray(item.Value);
 
                 // сделать в файле конфигурации поле из которого я буду считывать режим и запускать драйвер
-                if (!string.IsNullOrWhiteSpace(_codeType) && _codeType == "1") // _codeType BitConverter.IsLittleEndian
+                if (!string.IsNullOrWhiteSpace(_codeType) && _codeType == codeEndian)
                 {
-                    Array.Reverse(bytes);
+                    Array.Reverse(bytes); // при необходимости перевернуть кодировку
                 }
 
-                massValue[item.Key] = ((float)Math.Round(BitConverter.ToSingle(bytes, 0), 2)).ToString("F2");
+                temp.Add(item.Key, ((float)Math.Round(BitConverter.ToSingle(bytes, 0), 2)).ToString("F2"));
             }
+
+            // копирую, по уродски, пока...
+            foreach (var item in temp)
+                massValue[item.Key] = item.Value;
         }
         catch (Exception ex)
         {
-            Debug.WriteLine(ex.Message);
             _wasError = true;
+            //return false; // не имеет смысла 
+            throw;
         }
 
         return true;
