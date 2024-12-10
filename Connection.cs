@@ -21,11 +21,9 @@ namespace serialtoip
         private CrossThreadComm.UpdateState _updState;
         private CrossThreadComm.UpdateRXTX _updRxTx;
         public Socket ARMsocket;
-
-        // добавить udp клиента 
         private CancellationTokenSource _udpCts;
         private UdpClient _udpServer;
-        IPEndPoint _epContr31;
+        // IPEndPoint _epContr31; // на 9.12.2024 передачи данных не ожидается
 
         private bool _isfree = true;
         private Dictionary<string, string> _d;
@@ -72,15 +70,15 @@ namespace serialtoip
         }
 
         public void SetConnInfoTraceCallback(CrossThreadComm.TraceCb conInfoCb) => _conInfoCallback = conInfoCb;
-
         public bool IsFree() => _isfree;
-
+        #region TraceLine()
         public void TraceLine(string s)
         {
             if (_conInfoCallback == null)
                 return;
             _conInfoCallback((object)s);
         }
+        #endregion
 
         public void StopRequest()
         {
@@ -107,35 +105,33 @@ namespace serialtoip
         public bool StartConnection(
           Socket soc,
           Dictionary<string, string> d,
-           UdpClient udpServer,
-            CancellationTokenSource udpCts,
+          UdpClient udpServer,
+          CancellationTokenSource udpCts,
           CrossThreadComm.TraceCb conInfoCb,
           CrossThreadComm.UpdateState updState,
           CrossThreadComm.UpdateRXTX updRxTx)
         {
             ARMsocket = soc;
-
-            // добавить udp клиента 
             _udpServer = udpServer;
             _udpCts = udpCts;   
             _d = d;
             _updState = updState;
             _updRxTx = updRxTx;
-            _epContr31 = new IPEndPoint(IPAddress.Parse(_d["vesy31ip"]), Int32.Parse(_d["vesy31port"]));
-            SetConnInfoTraceCallback(conInfoCb);
+            //_epContr31 = new IPEndPoint(IPAddress.Parse(_d["vesy31ip"]), Int32.Parse(_d["vesy31port"]));
 
+            #region Обновляю текстовые данные на главной форме
+            SetConnInfoTraceCallback(conInfoCb);
             if (_updState != null)
                 _updState((object)this, CrossThreadComm.State.start);
+            #endregion
             _isfree = false;
 
-            // добавить udp клиента 
             if (_udpServer is null)
             {
-                
                 try
                 {
-                    // при 1-м входе
-                    _udpCts = new CancellationTokenSource();
+                    if (_udpCts is null)
+                        _udpCts = new CancellationTokenSource();
                     _udpServer = new UdpClient(Int32.Parse(_d["vesy31port"]));
                 }
                 catch (Exception ex)
@@ -150,10 +146,6 @@ namespace serialtoip
                     }
                     throw;
                 }
-
-                // добавить udp клиента 
-                //TraceLine("Connection to controller - OK " + _moxaTC.RemoteEndPoint.ToString()); // подключение к контроллеру - спецификация
-                //logger.Info("Connection to controller - OK " + _moxaTC.RemoteEndPoint.ToString());
             }
             new Thread(new ThreadStart(Tranceiver)).Start();
             return true;
@@ -164,40 +156,43 @@ namespace serialtoip
             byte[] buffer = new byte[8192];
             _keepOpen = true;
             string cliCmd = string.Empty;
-            // vesy31ip vesy31port
-            TraceLine("vesy31 controler connected from " + _d["vesy31ip"] +":"+ int.Parse(_d["vesy31port"]));
-            
+            #region Write a log to main form
             if (_updState != null)
                 _updState((object)this, CrossThreadComm.State.connect);
-            
+            #endregion
+
             while (_keepOpen)
             {
                 bool transferOccured = false; // флаг свершения передачи данных клиент <-> контроллер
                 
                 // ------------------------------ от клиента пришёл запрос begin -----------------------------------------------------------------   
                 int colByteARM = LimitTo(ARMsocket.Available, 8192);
-                if (colByteARM > 0) // 
+                if (colByteARM > 0)
                 {
+                    #region Обновляю счётчик байтов на главной форме
                     if (_updRxTx != null)
                         _updRxTx((object)this, 0, colByteARM);
-                    
+                    #endregion
+
                     ARMsocket.Receive(buffer, colByteARM, SocketFlags.None);
                     byte[] ARMbyteArr = new byte[colByteARM];                                               // установил размерность нового массива
                     Buffer.BlockCopy(buffer, 0, ARMbyteArr, 0, colByteARM);
+                    #region Запись в лог "строка запроса прикладного ПО драйверу"
                     System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
                     logger.Info("ARM query string: " + Encoding.GetEncoding(1251).GetString(ARMbyteArr));   // строка запроса прикладного ПО драйверу
-
+                    #endregion
                     byte[] controllerCommand = DecodeClientRequestToControllerCommand(buffer, colByteARM);  // Верну null если команда не корректная, иначе - команду для контроллера
                     if (controllerCommand != null)                                                          // команда корректна -> отправляем устройству
                     {
                         try 
                         {
-                            // если не получить вес - отправляю запрос без ожидания ответа
-                            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-                            if (Encoding.GetEncoding(1251).GetString(ARMbyteArr) != "<Request method='get_static'/>") 
-                            {
-                                _udpServer.Send(controllerCommand, controllerCommand.Length, _epContr31);    // запрос от драйвера к контроллеру
-                            }
+                            #region Если команда отлична от "Получить вес", то отправляю запрос без ожидания ответа - закомичено
+                            //System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                            //if (Encoding.GetEncoding(1251).GetString(ARMbyteArr) != "<Request method='get_static'/>") 
+                            //{
+                            //    _udpServer.Send(controllerCommand, controllerCommand.Length, _epContr31);    // запрос от драйвера к контроллеру
+                            //}
+                            #endregion
 
                             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
                             if (Encoding.GetEncoding(1251).GetString(ARMbyteArr) == "<Request method='get_static'/>")
@@ -233,65 +228,77 @@ namespace serialtoip
 
                                                 if (preparedMess.wasError == false)
                                                 {
-                                                    // подгатавливаю XML документ
                                                     byte[] xmlByteValues = XMLFormatter.getStatic(preparedMess.setOfValues);
-
-
-                                                    string answer = string.Empty;
-                                                    foreach (var item in preparedMess.setOfValues)
-                                                    {
-                                                        // добавить заполнение объекта XML формата
-                                                        // если данные принятые из udp корректные - возвращаю сообщение,
-                                                        // нет - возвращаю сообщение об ошибке 
-                                                        TraceLine($"{item.Value}\n");
-                                                        logger.Info($"{item.Value}");           // ответ драйвера прикладному ПО
-                                                        answer = $"{answer} {item.Value}\n";
-
-                                                    }
-
-                                                    byte[] arr = Encoding.GetEncoding(1251).GetBytes($"{answer}");
-                                                    //ARMsocket.Send(arr, arr.Length, SocketFlags.None);        // Отправляем в АРМ весов XML в виде byte[].
-                                                    ARMsocket.Send(xmlByteValues, xmlByteValues.Length, SocketFlags.None);        // Отправляем в АРМ весов XML в виде byte[].
-                                                    _udpCts.Cancel();       // после однократной операции - останавливаю передачу
+                                                    #region Отладочный блок, закомментирован
+                                                    //string answer = string.Empty;
+                                                    //foreach (var item in preparedMess.setOfValues)
+                                                    //{
+                                                    //    TraceLine($"{item.Value}\n");
+                                                    //    logger.Info($"{item.Value}");           // ответ драйвера прикладному ПО
+                                                    //    answer = $"{answer} {item.Value}\n";
+                                                    //}
+                                                    //byte[] arr = Encoding.GetEncoding(1251).GetBytes($"{answer}");
+                                                    #endregion
+                                                    ARMsocket.Send(xmlByteValues, xmlByteValues.Length, SocketFlags.None);      // Отправляем в АРМ весов XML в виде byte[].
+                                                    transferOccured = true;
+                                                    _udpCts.Cancel();                                                           // после однократной операции - останавливаю передачу
+                                                    _udpServer.Close();
                                                 }
                                                 else 
                                                 {
                                                     Exception exInner = new Exception("Ошибка формата документа");              // Согласно спецификации - ловить таймаут
                                                     byte[] errorByteArr = XMLFormatter.GetError(exInner, 1);                    // Отформатировал ошибку в XML формат. 
                                                     ARMsocket.Send(errorByteArr, errorByteArr.Length, SocketFlags.None);        // Отправляем в АРМ весов XML в виде byte[].
+                                                    transferOccured = true;
+                                                    _udpCts.Cancel();                                                           // после однократной операции - останавливаю передачу
+                                                    _udpServer.Close();
                                                 }
                                             }
-
-                                            TraceLine($"You can process the received message further here {DateTime.Now.ToString("HH:mm:ss.fff")}\n");
-                                            logger.Info($"You can process the received message further here {DateTime.Now.ToString("HH:mm:ss.fff")}");
+                                            #region Write log
+                                            TraceLine($"You can process the received message further here");
+                                            logger.Info($"You can process the received message further here");
+                                            #endregion
                                         }
                                         else
                                         {
-                                            // отправить, ответ о неудачном приёме сообщения клиенту
-                                            TraceLine($"No data received within timeout period {DateTime.Now.ToString("HH:mm:ss.fff")}\n");
-                                            logger.Info($"No data received within timeout period {DateTime.Now.ToString("HH:mm:ss.fff")}");
+                                            _udpCts.Cancel();     
+                                            _udpServer.Close();
+                                            #region Write log
+                                            TraceLine($"No data received within timeout period");
+                                            logger.Info($"No data received within timeout period");
+                                            #endregion
                                         }
-                                    } // else 
+                                    }
                                 }
                                 catch (OperationCanceledException ex)
                                 {
+                                    #region Write log
                                     TraceLine($"UDP server has been stopped\n {ex.Message}\n");
                                     logger.Info($"UDP server has been stopped\n {ex.Message}");
+                                    #endregion
+                                    throw;
                                 }
                                 catch (SocketException ex)
                                 {
+                                    #region Write log
                                     TraceLine($"Socket error:\n {ex.Message}\n");
                                     logger.Info($"Socket error:\n {ex.Message}");
+                                    #endregion
+                                    throw;
                                 }
                                 catch (Exception ex)
                                 {
+                                    #region Write log
                                     TraceLine($"Unexpected error:\n {ex.Message}\n");
                                     logger.Info($"Unexpected error:\n {ex.Message}");
+                                    #endregion
+                                    throw;
                                 }
                                 finally
                                 {
                                     _udpCts.Cancel();
-                                    _udpServer.Dispose();
+                                    _udpServer.Close();
+
                                     _udpCts = null;
                                     _udpServer = null;
 
@@ -300,15 +307,6 @@ namespace serialtoip
                                 }
 
                             }
-
-                            // если запрос "get_static" - просто устанавливаю коннект к контроллеру 
-                            // и автоматом получаю 1-но сообщение
-                            // отправляю клиенту
-                            // если другая команда "set_zero" - отправляю в устройство, не ожидая ответа
-                            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-                            logger.Info(Encoding.GetEncoding(1251).GetString(controllerCommand));           // команда контроллеру
-                            Thread.Sleep(600);                                                              // подождём пока данные прийдут. На 200 - сыплет ошибки.
-                            transferOccured = true;                                                                    // передача данных контроллеру была
                         } 
                         catch (SocketException ex) 
                         {
@@ -321,15 +319,16 @@ namespace serialtoip
                             TraceLine(ex.StackTrace + " " + ex.Message);
                             logger.Error(ex);
                         }
-                        
                     }
-                    else                                                                        // формирование для клиента сообщения об ошибке в его запросе.
+                    else                                                                        
                     {
-                        Exception ex = new Exception("Ошибка обработки запроса");               // Согласно спецификации.
+                        Exception ex = new Exception("Нет ответа от устройства");              
                         byte[] errorByteArr = XMLFormatter.GetError(ex, 2);                     // Отформатировал ошибку в XML формат. 
                         ARMsocket.Send(errorByteArr, errorByteArr.Length, SocketFlags.None);    // Отправляем в АРМ весов XML в виде byte[].
+                        #region Логирование текста ошибки
                         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-                        logger.Error(Encoding.GetEncoding(1251).GetString(errorByteArr));       // пишу ответ для арма весов.
+                        logger.Error(Encoding.GetEncoding(1251).GetString(errorByteArr));       
+                        #endregion
                     }
                 }
 
@@ -342,20 +341,16 @@ namespace serialtoip
                 if (!transferOccured)
                     Thread.Sleep(1);
             }
-            
+
+            #region Отправка сообщения на главную форму, логирование
             if (_updState != null)
                 _updState(this, CrossThreadComm.State.disconnect);
+            TraceLine("Stopping UDP server...");
+            logger.Info("Stopping UDP server...");
+            #endregion
 
-            if (_udpServer is not null)
-            {
-                TraceLine("Stopping UDP server..."); 
-                logger.Info("Stopping UDP server...");
-
-                if(_udpCts is not null)
-                    _udpCts.Cancel();
-
-                _udpServer.Close();
-            }
+            if (_udpCts is not null) _udpCts.Cancel();
+            if (_udpServer is not null) _udpServer.Close();
 
             logger.Info("Connect to weighter ARM is closed " + ARMsocket.RemoteEndPoint.ToString()); // отключение от ARM весов
             ARMsocket.Close();
